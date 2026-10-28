@@ -9,6 +9,8 @@ import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
+import android.widget.Toast
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.WindowManager
@@ -87,14 +89,29 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
         if (onde) taramaPlanla(200)
     }
 
+    /** Zaten daha erken bir tarama planlıysa onu bozma; böylece sürekli güncellenen ekranda tarama hiç gecikmez. */
+    private var planlananZaman = 0L
+
     private fun taramaPlanla(gecikme: Long) {
+        val zaman = SystemClock.uptimeMillis() + gecikme
+        if (planlananZaman != 0L && planlananZaman <= zaman) return
         ana.removeCallbacks(taramaGorevi)
-        ana.postDelayed(taramaGorevi, gecikme)
+        planlananZaman = zaman
+        ana.postAtTime(taramaGorevi, zaman)
     }
 
     // ---------------- Ekran taraması ----------------
 
+    // Teşhis: balona basılı tutunca gösterilir
+    private var sonDugum = 0
+    private var sonYazi = 0
+    private var sonCevrilen = 0
+    private var sonAdaySayisi = 0
+    private var sonTaramaZamani = 0L
+    private var ornekYazi = ""
+
     private fun tara() {
+        planlananZaman = 0L
         val k = katman ?: return
         if (!githubOnde || !acik) { k.temizle(); return }
         val kok = try { rootInActiveWindow } catch (_: Exception) { null } ?: return
@@ -103,7 +120,11 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
         val ekran = Rect(0, 0, resources.displayMetrics.widthPixels, resources.displayMetrics.heightPixels)
         val ogeler = ArrayList<CeviriKatmani.Oge>()
         val sayac = intArrayOf(0)
+        sonYazi = 0; sonAdaySayisi = 0; ornekYazi = ""
         dugumuGez(kok, ekran, ogeler, sayac, 0)
+        sonDugum = sayac[0]
+        sonCevrilen = ogeler.size
+        sonTaramaZamani = System.currentTimeMillis()
         k.goster(ogeler)
     }
 
@@ -115,7 +136,7 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
         sayac: IntArray,
         derinlik: Int,
     ): Boolean {
-        if (derinlik > 80 || sayac[0] > 400) return false
+        if (derinlik > 100 || sayac[0] > 2500) return false
         sayac[0]++
 
         // Önce çocuklar: en içteki yazıyı tercih et ki aynı metin iki kez çizilmesin
@@ -128,6 +149,7 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
 
         val metin = d.text?.toString()?.trim().orEmpty()
         if (metin.isEmpty()) return false
+        sonYazi++
         if (d.isEditable) return true // yazı kutularına dokunma
         if (!d.isVisibleToUser) return true
 
@@ -136,6 +158,8 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
         if (alan.isEmpty || !alan.intersect(ekran)) return true
 
         if (!cevrilmeliMi(metin)) return true
+        sonAdaySayisi++
+        if (ornekYazi.isEmpty()) ornekYazi = metin.take(40)
         val girdi = if (metin.length > 1500) metin.take(1500) else metin
 
         val ceviri = motor.onbellektenAl(girdi, hedef)
@@ -218,10 +242,12 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
         var baslangicY = 0f
         var ilkY = 0
         var surukleniyor = false
+        var basmaZamani = 0L
         t.setOnTouchListener { _, e ->
             when (e.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
-                    baslangicY = e.rawY; ilkY = p.y; surukleniyor = false; true
+                    baslangicY = e.rawY; ilkY = p.y; surukleniyor = false
+                    basmaZamani = SystemClock.uptimeMillis(); true
                 }
                 MotionEvent.ACTION_MOVE -> {
                     val fark = e.rawY - baslangicY
@@ -235,6 +261,8 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
                 MotionEvent.ACTION_UP -> {
                     if (surukleniyor) {
                         Ayarlar.prefs(this).edit().putInt(Ayarlar.BALON_Y, p.y).apply()
+                    } else if (SystemClock.uptimeMillis() - basmaZamani > 600) {
+                        teshisGoster()
                     } else {
                         Ayarlar.prefs(this).edit().putBoolean(Ayarlar.ACIK, !acik).apply()
                     }
@@ -251,6 +279,19 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
         } catch (_: Exception) {}
     }
 
+    private fun teshisGoster() {
+        tara()
+        val ms = if (sonTaramaZamani == 0L) "hiç" else "${(System.currentTimeMillis() - sonTaramaZamani) / 1000} sn önce"
+        val m = buildString {
+            appendLine("Son tarama: $ms")
+            appendLine("Düğüm: $sonDugum · yazı: $sonYazi · aday: $sonAdaySayisi · çizilen: $sonCevrilen")
+            appendLine("Bekleyen çeviri: ${motor.bekleyenSayisi} · indirme: ${motor.indirmeSayisi}")
+            if (ornekYazi.isNotEmpty()) appendLine("Örnek: $ornekYazi")
+            if (motor.sonHata.isNotEmpty()) append("Hata: ${motor.sonHata}")
+        }
+        Toast.makeText(this, m.trim(), Toast.LENGTH_LONG).show()
+    }
+
     private fun balonuGuncelle() {
         val t = balon ?: return
         val renk = if (acik) Color.rgb(31, 111, 235) else Color.rgb(110, 118, 129)
@@ -262,6 +303,7 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
         t.alpha = if (acik) 0.95f else 0.7f
         t.text = when {
             motor.indirmeSayisi > 0 -> "⏳"
+            motor.sonHata.isNotEmpty() -> "!"
             acik -> hedef.uppercase()
             else -> "Aa"
         }
