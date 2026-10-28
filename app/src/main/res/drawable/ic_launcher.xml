@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mavi daire üzerinde iki konuşma balonu: biri "文", biri "A" -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#1F6FEB"
+        android:pathData="M54,4a50,50 0,1 1,0 100a50,50 0,1 1,0 -100z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M24,30h34a6,6 0,0 1,6 6v18a6,6 0,0 1,-6 6h-20l-10,8v-8h-4a6,6 0,0 1,-6 -6v-18a6,6 0,0 1,6 -6z" />
+    <path
+        android:fillColor="#0D1117"
+        android:pathData="M50,48h34a6,6 0,0 1,6 6v18a6,6 0,0 1,-6 6h-4v8l-10,-8h-20a6,6 0,0 1,-6 -6v-18a6,6 0,0 1,6 -6z" />
+    <path
+        android:strokeColor="#1F6FEB"
+        android:strokeWidth="3"
+        android:pathData="M31,38h20M41,35v4M34,44c3,6 8,9 14,10M48,44c-3,6 -8,9 -14,10" />
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.5"
+        android:pathData="M60,72l7,-17l7,17M63,66h8" />
+</vector>

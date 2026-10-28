@@ -1,0 +1,42 @@
+name: APK Derle
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  derle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: APK'yı derle
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --stacktrace
+          cp app/build/outputs/apk/release/app-release.apk GitHub-Cevirmen.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GitHub-Cevirmen
+          path: GitHub-Cevirmen.apk
+
+      - name: Release olarak yayınla (telefondan kolay indirmek için)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: GitHub Çevirmen v1.0.${{ github.run_number }}
+          body: Telefonuna indirip kur. Kurulum adımları için README'ye bak.
+          files: GitHub-Cevirmen.apk
+          make_latest: true

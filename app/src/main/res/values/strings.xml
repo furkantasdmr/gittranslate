@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GitHub Çevirmen</string>
+    <string name="service_label">GitHub Çevirmen</string>
+    <string name="service_description">GitHub uygulaması açıkken ekrandaki yabancı dildeki yazıları okur ve seçtiğin dile çevirip üstüne yazar. Çeviri telefonun içinde yapılır, metinler hiçbir sunucuya gönderilmez. Başka uygulamalarda hiçbir şey yapmaz.</string>
+</resources>
