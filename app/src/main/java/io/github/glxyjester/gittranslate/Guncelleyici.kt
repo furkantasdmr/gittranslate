@@ -26,7 +26,7 @@ import java.util.concurrent.Executors
 object Guncelleyici {
 
     /** Release'lerin bulunduğu repo (ad değişirse GitHub eski adresi yönlendirir) */
-    const val REPO = "glxyjester/gittranslate"
+    const val REPO = "furkantasdmr/gittranslate"
     private const val DOSYA = "GitTranslate.apk"
 
     data class Yeni(val kod: Long, val etiket: String, val adres: String, val boyut: Long)
