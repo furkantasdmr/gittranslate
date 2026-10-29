@@ -33,6 +33,11 @@ You open a repository in the GitHub app and the README is in Chinese, Japanese, 
 - **🤝 Share menu too.** GitHub → Share → *Explain repo* works without the bubble.
 - **No AI, no account, no API key.** Free and open source (MIT).
 
+### Requirements
+
+- Android 7.0 or newer, with the official GitHub app.
+- Reading the repository name from a screenshot (needed on some phones) requires Android 11 or newer.
+
 ### Install
 
 1. Download `GitTranslate.apk` from [Releases](../../releases/latest) and install it.
@@ -94,6 +99,11 @@ GitHub uygulamasında bir repoya giriyorsun, README Çince, Japonca, Rusça… y
 - **🌐 19 dil.** Türkçe, İngilizce, Almanca, Fransızca, İspanyolca, Portekizce, İtalyanca, Felemenkçe, Lehçe, Rusça, Ukraynaca, Arapça, Farsça, Hintçe, Endonezce, Vietnamca, Japonca, Korece ve Çince. Varsayılanı telefonunun dilidir.
 - **🤝 Paylaş menüsü de var.** Balonu kullanmadan GitHub → Paylaş → *Repoyu anlat* ile de açılır.
 - **Yapay zekâ yok, hesap yok, API anahtarı yok.** Ücretsiz ve açık kaynak (MIT).
+
+### Gereksinimler
+
+- Android 7.0 veya üstü ve resmi GitHub uygulaması.
+- Repo adını ekran görüntüsünden okuma (bazı telefonlarda gerekir) için Android 11 veya üstü.
 
 ### Kurulum
 
