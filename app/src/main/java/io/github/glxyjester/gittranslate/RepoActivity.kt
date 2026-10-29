@@ -761,6 +761,16 @@ class RepoActivity : Activity() {
         icerik.addView(degistir)
         icerik.addView(ui.yaziGorunumu(getString(R.string.translated_to, Ayarlar.dilAdi(hedef)), 12f, renk = ui.sonuk, ust = 12)
             .apply { gravity = Gravity.CENTER })
+        // Yeni sürüm varsa küçük bir bağlantı
+        val yer = ui.kolon()
+        icerik.addView(yer)
+        Guncelleyici.kontrol(this, zorla = false) { y ->
+            if (y == null || isDestroyed) return@kontrol
+            yer.addView(ui.baglantiYazisi("🔄 " + getString(R.string.upd_panel_link, y.etiket), ust = 6) {
+                startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                finish()
+            }.apply { gravity = Gravity.CENTER })
+        }
     }
 
     // ---------------- Çeviri ----------------

@@ -41,6 +41,8 @@ You open a repository in the GitHub app and the README is in Chinese, Japanese, 
 3. Optional but recommended: **Allow running in background**, so aggressive battery savers (Xiaomi, Huawei, Samsung…) don't stop the bubble.
 4. Open any repository in the GitHub app and tap the bubble.
 
+**Updates:** when a new version is out, GitTranslate shows an **Update now** button. Updating from inside the app keeps the bubble's permission, so you don't need to set anything up again.
+
 Tips: **drag** the bubble to move it (it snaps to the nearest edge). **Hold** it to see which repository it detected. When the bubble is grey, it hasn't recognized a repository on screen yet, but tapping it still makes it look again.
 
 ### Privacy
@@ -98,6 +100,8 @@ GitHub uygulamasında bir repoya giriyorsun, README Çince, Japonca, Rusça… y
    - Android 13 ve üstü: gri görünüyor ya da "Kısıtlı ayar" diyorsa **Uygulama bilgisi** → sağ üstteki **⋮** → **Kısıtlanmış ayarlara izin ver**, sonra tekrar dene.
 3. İsteğe bağlı ama önerilir: **Arka planda çalışmasına izin ver**. Böylece agresif pil tasarrufu yapan telefonlar (Xiaomi, Huawei, Samsung…) balonu kapatmaz.
 4. GitHub uygulamasında herhangi bir repoyu aç ve balona dokun.
+
+**Güncellemeler:** Yeni sürüm çıkınca GitTranslate'te **Şimdi güncelle** düğmesi belirir. Uygulamanın içinden güncellersen balonun izni korunur, bir şeyi yeniden ayarlaman gerekmez.
 
 İpuçları: balonu **sürükleyerek** taşıyabilirsin, bırakınca en yakın kenara yapışır. **Basılı tutarsan** hangi repoyu bulduğunu gösterir. Balon griyse ekranda henüz bir repo tanımamıştır; yine de dokunursan tekrar arar.
 

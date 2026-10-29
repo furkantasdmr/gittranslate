@@ -81,6 +81,11 @@ class BalonServisi : AccessibilityService() {
     private var bosZamani = 0L
     private var sonArkaOkuma = 0L
     private var arkaOkumaSuruyor = false
+    /** Son repo ekran yazısından mı (sık kontrol edilir) yoksa ekran görüntüsünden mi bulundu */
+    private var sonKaynakGoruntu = false
+    private var bosGoruntuSayisi = 0
+    /** Ekran bir süre sabit kalınca (kaydırma/geçiş bitince) bir kez ekrandan oku */
+    private val yerlesmeGorevi = Runnable { guvenli { if (githubOnde && (sonRepo == null || sonKaynakGoruntu)) arkaPlandaOku(zorla = true) } }
 
     /** Dokunma sonrası arama sürüyor mu (çift dokunuşu engeller) */
     private var mesgul = false
@@ -120,7 +125,11 @@ class BalonServisi : AccessibilityService() {
                 ana.postDelayed(onDurumGorevi, 120)
             }
             AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED, AccessibilityEvent.TYPE_VIEW_SCROLLED -> {
-                if (githubOnde && olay.packageName?.toString() == GITHUB) taramaPlanla(450)
+                if (githubOnde && olay.packageName?.toString() == GITHUB) {
+                    taramaPlanla(450)
+                    ana.removeCallbacks(yerlesmeGorevi)
+                    ana.postDelayed(yerlesmeGorevi, 1000)
+                }
             }
         }
     }
@@ -182,6 +191,8 @@ class BalonServisi : AccessibilityService() {
                 if (balon == null) balonEkle()
                 balon?.visibility = if (klavyeAcik) View.GONE else View.VISIBLE
                 taramaPlanla(150)
+                ana.removeCallbacks(yerlesmeGorevi)
+                ana.postDelayed(yerlesmeGorevi, 900)
             }
             p != null && p != "com.android.systemui" -> {
                 githubOnde = false
@@ -207,29 +218,43 @@ class BalonServisi : AccessibilityService() {
         sonYaziSayisi = yazilar.size
         val dm = resources.displayMetrics
         val t = RepoTespit.bul(yazilar, dm.heightPixels, dm.density)
-        tespitIsle(t, getString(R.string.method_screen_text))
-        if (t == null) arkaPlandaOku()
+        if (t != null) tespitIsle(t, goruntu = false)
+        else if (!sonKaynakGoruntu) tespitIsle(null, goruntu = false)
+        // Ekran yazısında yoksa ekran görüntüsünden bakılır; o sonuç ekran yazısının "boş" demesiyle silinmez
+        if (t == null) arkaPlandaOku(zorla = false)
         return t
     }
 
     /** Bulunan repoyu kaydet; aynı repo bir süre ekranda kalırsa arka planda hazırlığa başla. */
-    private fun tespitIsle(t: TespitSonucu?, yontem: String) {
+    private fun tespitIsle(t: TespitSonucu?, goruntu: Boolean) {
         val simdi = SystemClock.uptimeMillis()
         if (t == null) {
-            if (bosZamani == 0L) bosZamani = simdi
-            // Kısa süreli boşlukları (kaydırma, animasyon) yok say; uzun sürerse balon griye döner
-            if (simdi - bosZamani > 1500) { sonRepo = null; aday = null }
+            if (goruntu) {
+                // Ekran görüntüsünde iki kez üst üste repo yoksa başka bir sayfaya geçilmiştir
+                if (++bosGoruntuSayisi >= 2) { sonRepo = null; aday = null; sonKaynakGoruntu = false }
+            } else {
+                if (bosZamani == 0L) bosZamani = simdi
+                // Kısa süreli boşlukları (kaydırma, animasyon) yok say; uzun sürerse balon griye döner
+                if (simdi - bosZamani > 1500) { sonRepo = null; aday = null }
+            }
             balonuGuncelle()
             return
         }
         bosZamani = 0L
+        if (goruntu) bosGoruntuSayisi = 0
         sonRepo = t
-        sonYontem = yontem
+        sonKaynakGoruntu = goruntu
+        sonYontem = getString(if (goruntu) R.string.method_screenshot else R.string.method_screen_text)
         if (t.kesin) {
-            val ayni = aday?.let { it.sahip.equals(t.sahip, true) && it.ad.equals(t.ad, true) } == true
-            if (!ayni) { aday = t; adayZamani = simdi; taramaPlanla(BEKLEME + 50) }
-            else if (simdi - adayZamani >= BEKLEME) OnHazirlik.baslat(this, t)
-            else taramaPlanla(BEKLEME - (simdi - adayZamani) + 50)
+            if (goruntu) {
+                // Ekran görüntüsü zaten ekran durulunca alınıyor: beklemeden başla
+                aday = t; OnHazirlik.baslat(this, t)
+            } else {
+                val ayni = aday?.let { it.sahip.equals(t.sahip, true) && it.ad.equals(t.ad, true) } == true
+                if (!ayni) { aday = t; adayZamani = simdi; taramaPlanla(BEKLEME + 50) }
+                else if (simdi - adayZamani >= BEKLEME) OnHazirlik.baslat(this, t)
+                else taramaPlanla(BEKLEME - (simdi - adayZamani) + 50)
+            }
         }
         balonuGuncelle()
     }
@@ -250,25 +275,29 @@ class BalonServisi : AccessibilityService() {
     // ---------------- Repo bulma: ekran görüntüsü (OCR) ----------------
 
     /**
-     * Ekran yazısında repo yoksa, Android 14+ telefonlarda sadece GitHub penceresinin görüntüsünü
-     * alıp (balon görüntüye girmez, titreme olmaz) arka planda okur. En fazla 3 sn'de bir.
+     * Ekran yazısında repo yoksa ekranın görüntüsünden arka planda okur.
+     * Android 14+: sadece GitHub penceresinin görüntüsü (balon görüntüye girmez).
+     * Android 11-13: tam ekran görüntüsü; balon gizlenmez (titreme olmasın), "文A" yazısı repo adına benzemez.
+     * Kaydırırken en fazla 2,5 sn'de bir; ekran durulunca ([zorla]) hemen.
      */
-    private fun arkaPlandaOku() {
-        if (Build.VERSION.SDK_INT < 34 || arkaOkumaSuruyor || mesgul) return
+    private fun arkaPlandaOku(zorla: Boolean) {
+        if (Build.VERSION.SDK_INT < 30 || arkaOkumaSuruyor || mesgul) return
+        if (aktifPaket() != GITHUB) return // kendi panelimiz ya da başka bir şey öndeyse okuma
         val simdi = SystemClock.uptimeMillis()
-        if (simdi - sonArkaOkuma < 3000) return
-        val w = githubPenceresi() ?: return
+        if (simdi - sonArkaOkuma < (if (zorla) 900 else 2500)) return
         sonArkaOkuma = simdi
         arkaOkumaSuruyor = true
         var bitti = false
         val tek: (TespitSonucu?) -> Unit = { t ->
             if (!bitti) {
                 bitti = true; arkaOkumaSuruyor = false
-                if (t != null && githubOnde) tespitIsle(t, getString(R.string.method_screenshot))
+                if (githubOnde) guvenli { tespitIsle(t, goruntu = true) }
             }
         }
         ana.postDelayed({ tek(null) }, 5000)
-        pencereGoruntusu(w, tek)
+        val w = githubPenceresi()
+        if (Build.VERSION.SDK_INT >= 34 && w != null) pencereGoruntusu(w, tek)
+        else guvenli { takeScreenshot(Display.DEFAULT_DISPLAY, yurutucu, geriCagirma(0, 0, tek)) }
     }
 
     @TargetApi(34)
@@ -358,7 +387,7 @@ class BalonServisi : AccessibilityService() {
                     Toast.makeText(this, R.string.bubble_no_repo, Toast.LENGTH_LONG).show()
                     return@guvenli
                 }
-                if (g != null) { sonRepo = g; sonYontem = getString(R.string.method_screenshot) }
+                if (g != null) tespitIsle(g, goruntu = true)
                 if (bulunan.kesik == TespitSonucu.Kesik.YOK) {
                     mesgulOl(false); panelAc(bulunan.sahip, bulunan.ad); return@guvenli
                 }
@@ -539,7 +568,7 @@ class BalonServisi : AccessibilityService() {
         mesgul = false
         balon?.let { try { wm?.removeView(it) } catch (_: Throwable) {} }
         balon = null; resim = null; halka = null; params = null
-        sonRepo = null; aday = null
+        sonRepo = null; aday = null; sonKaynakGoruntu = false; bosGoruntuSayisi = 0
     }
 
     /** Balonun çevresinde dolan ilerleme halkası */

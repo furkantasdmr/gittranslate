@@ -131,4 +131,12 @@
     <string name="bubble_ready">Translated and ready — tap to read.</string>
     <string name="bubble_preparing">Translating in the background… %d%%</string>
     <string name="bubble_prep_failed">Couldn\'t prepare in the background; tap to try.</string>
+    <string name="upd_title">Update</string>
+    <string name="upd_available">A new version (%1$s) is ready. You have %2$s. Updating from here keeps the bubble\'s permission; you won\'t need to set anything up again.</string>
+    <string name="upd_button">Update now</string>
+    <string name="upd_downloading">Downloading… %d%%</string>
+    <string name="upd_installing">Installing…</string>
+    <string name="upd_failed">Update failed: %s</string>
+    <string name="upd_need_permission">Allow GitTranslate to install updates (one time), then come back and tap Update again.</string>
+    <string name="upd_panel_link">New version %s — tap to update</string>
 </resources>

@@ -22,9 +22,40 @@ class MainActivity : Activity() {
     private lateinit var paketYazisi: TextView
     private lateinit var balonDurumu: TextView
     private lateinit var pilDugmesi: TextView
+    private lateinit var guncellemeKarti: android.widget.LinearLayout
+    private lateinit var guncellemeYazisi: TextView
+    private lateinit var guncellemeDugmesi: TextView
+    private var guncelleniyor = false
+
+    private fun guncellemeyiGoster(y: Guncelleyici.Yeni?) {
+        if (guncelleniyor) return
+        guncellemeKarti.visibility = if (y != null) android.view.View.VISIBLE else android.view.View.GONE
+        if (y != null) guncellemeYazisi.text = getString(R.string.upd_available, y.etiket, Guncelleyici.mevcutAd(this))
+    }
+
+    private fun guncelle() {
+        val y = Guncelleyici.bilinen ?: return
+        if (guncelleniyor) return
+        if (!Guncelleyici.izinVarMi(this)) {
+            android.widget.Toast.makeText(this, R.string.upd_need_permission, android.widget.Toast.LENGTH_LONG).show()
+            return
+        }
+        guncelleniyor = true
+        guncellemeDugmesi.isEnabled = false
+        Guncelleyici.kur(this, y, ilerleme = { yuzde ->
+            guncellemeDugmesi.text = if (yuzde < 0) getString(R.string.upd_installing) else getString(R.string.upd_downloading, yuzde)
+        }, hata = { m ->
+            guncelleniyor = false
+            guncellemeDugmesi.isEnabled = true
+            guncellemeDugmesi.text = getString(R.string.upd_button)
+            android.widget.Toast.makeText(this, getString(R.string.upd_failed, m), android.widget.Toast.LENGTH_LONG).show()
+        })
+    }
 
     override fun onResume() {
         super.onResume()
+        guncellemeyiGoster(Guncelleyici.bilinen)
+        Guncelleyici.kontrol(this, zorla = true) { if (!isDestroyed) guncellemeyiGoster(it) }
         val acik = servisAcikMi()
         balonDurumu.text = getString(if (acik) R.string.main_bubble_on else R.string.main_bubble_off)
         balonDurumu.setTextColor(if (acik) ui.yesil else ui.yazi)
@@ -49,6 +80,15 @@ class MainActivity : Activity() {
 
         kolon.addView(ui.yaziGorunumu(getString(R.string.app_name), 26f, kalin = true))
         kolon.addView(ui.yaziGorunumu(getString(R.string.main_intro), 15f, renk = ui.sonuk, ust = 6))
+
+        // Güncelleme (sadece yeni sürüm varsa görünür)
+        guncellemeKarti = ui.kart(ust = 16).apply { visibility = android.view.View.GONE }
+        guncellemeKarti.addView(ui.kartBasligi("🔄 " + getString(R.string.upd_title)))
+        guncellemeYazisi = ui.yaziGorunumu("", 14.5f)
+        guncellemeKarti.addView(guncellemeYazisi)
+        guncellemeDugmesi = ui.dugme(getString(R.string.upd_button)) { guncelle() }
+        guncellemeKarti.addView(guncellemeDugmesi)
+        kolon.addView(guncellemeKarti)
 
         // GitHub'da balon (erişilebilirlik servisi)
         val balon = ui.kart(ust = 18)

@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Bazı telefonlar (Xiaomi, Huawei, Samsung…) arka plandaki servisi kapatmasın diye -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- Uygulama içinden güncelleme (yeni sürümü kendisi kurar) -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- "GitHub'ı aç" düğmesi için (Android 11+) -->
     <queries>
@@ -59,5 +61,7 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/balon_servisi" />
         </service>
+
+        <receiver android:name=".GuncellemeAlici" android:exported="false" />
     </application>
 </manifest>
