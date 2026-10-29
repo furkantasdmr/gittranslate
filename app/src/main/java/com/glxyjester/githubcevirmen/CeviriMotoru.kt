@@ -163,11 +163,20 @@ object CeviriMotoru {
                 for (parca in parcala(metin, 1200)) {
                     val adres = "https://translate.googleapis.com/translate_a/single?client=gtx&dt=t" +
                         "&sl=$sl&tl=$tl&q=" + URLEncoder.encode(parca, "UTF-8")
-                    val b = URL(adres).openConnection() as HttpURLConnection
+                    var b = URL(adres).openConnection() as HttpURLConnection
                     b.connectTimeout = 10000
                     b.readTimeout = 10000
                     b.setRequestProperty("User-Agent", "Mozilla/5.0 (Android)")
                     try {
+                        // Geçici hata (ağ kopması, 429/5xx): kısa bir beklemeyle bir kez daha dene
+                        val kod = try { b.responseCode } catch (_: java.io.IOException) { -1 }
+                        if (kod != 200) {
+                            b.disconnect()
+                            Thread.sleep(800)
+                            b = URL(adres).openConnection() as HttpURLConnection
+                            b.connectTimeout = 10000; b.readTimeout = 10000
+                            b.setRequestProperty("User-Agent", "Mozilla/5.0 (Android)")
+                        }
                         if (b.responseCode != 200) throw IllegalStateException("HTTP ${b.responseCode}")
                         val kok = JSONArray(b.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() })
                         if (kok.optString(2, "").substringBefore('-') == hedef) hedefDilde = true

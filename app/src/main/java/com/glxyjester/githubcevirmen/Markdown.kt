@@ -14,6 +14,8 @@ sealed class Parca {
     data class Kod(val dil: String, val kod: String) : Parca()
     data class Alinti(val metin: String, val baglantilar: List<Baglanti>) : Parca()
     data class Tablo(val satirlar: List<List<String>>) : Parca()
+    /** README'deki ekran görüntüsü / resim (rozetler ve SVG'ler hariç) */
+    data class Resim(val aciklama: String, val adres: String) : Parca()
 }
 
 data class ListeOgesi(val derinlik: Int, val metin: String, val sirali: Boolean, val baglantilar: List<Baglanti>)
@@ -92,7 +94,12 @@ object Markdown {
         t = Regex("<a\\s[^>]*?href\\s*=\\s*[\"']([^\"']*)[\"'][^>]*>(.*?)</a\\s*>", hepsi).replace(t) {
             "[" + it.groupValues[2].replace('\n', ' ') + "](" + it.groupValues[1] + ")"
         }
-        t = Regex("<img[^>]*>", ic).replace(t, "")
+        // <img src="x" alt="y"> -> ![y](x) ; tek başına duran resimler sonra Parca.Resim olur
+        t = Regex("<img\\b[^>]*>", ic).replace(t) { m ->
+            val src = Regex("\\bsrc\\s*=\\s*[\"']([^\"']+)[\"']", ic).find(m.value)?.groupValues?.get(1)
+            val alt = Regex("\\balt\\s*=\\s*[\"']([^\"']*)[\"']", ic).find(m.value)?.groupValues?.get(1).orEmpty()
+            if (src == null) "" else " ![" + alt.replace("]", "") + "](" + src.replace(" ", "%20") + ") "
+        }
         t = Regex("<br\\s*/?>", ic).replace(t, "\n")
         t = Regex("</?(b|strong)\\s*>", ic).replace(t, "**")
         t = Regex("</?(code|kbd|tt)\\s*>", ic).replace(t, "`")
@@ -138,6 +145,7 @@ object Markdown {
             paragraf.clear()
             satirIci(ham).let { (m, b) ->
                 if (m.isNotBlank() && !sadeceBaglantiListesi(ham, m)) sonuc.add(Parca.Paragraf(m, b))
+                else if (m.isBlank()) resimler(ham).forEach { sonuc.add(it) }
             }
         }
         fun alintiBitir() {
@@ -302,6 +310,22 @@ object Markdown {
     }
 
     // ---------------- 3) Satır içi biçim ----------------
+
+    private val RESIM_ADRES = Regex("!\\[([^\\]]*)\\]\\(\\s*<?([^)\\s>]+)>?(?:\\s+[\"'][^\"']*[\"'])?\\s*\\)")
+    private val ROZET = Regex(
+        "shields\\.io|badge|badgen|travis-ci|codecov|circleci|coveralls|/workflows/|/actions/|appveyor|" +
+            "deepwiki|visitor|hits\\.|komarev|vercel\\.app/api|readme-stats|github-readme|wakatime|" +
+            "sonarcloud|codacy|snyk|gitter|discord|twitter\\.com|\\.svg(\\?|#|$)",
+        RegexOption.IGNORE_CASE,
+    )
+
+    /** Yalnızca resimlerden oluşan paragraftaki gerçek resimler (rozet, logo SVG'si değil) */
+    private fun resimler(ham: String): List<Parca.Resim> =
+        RESIM_ADRES.findAll(ham).mapNotNull { m ->
+            val adres = m.groupValues[2]
+            if (ROZET.containsMatchIn(adres) || adres.startsWith("data:")) null
+            else Parca.Resim(sadelestir(m.groupValues[1]), adres)
+        }.distinctBy { it.adres }.take(6).toList()
 
     private val BAGLI_RESIM = Regex("\\[\\s*!\\[[^\\]]*\\]\\([^)]*\\)\\s*\\]\\([^)]*\\)")
     private val BAGLI_RESIM_REF = Regex("\\[\\s*!\\[[^\\]]*\\]\\[[^\\]]*\\]\\s*\\](\\([^)]*\\)|\\[[^\\]]*\\])")

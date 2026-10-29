@@ -120,4 +120,8 @@
     <string name="main_bubble_off">⚪ Balon kapalı — Erişilebilirlik → İndirilen uygulamalar altında GitHub Çevirmen\'i aç.</string>
     <string name="main_restricted">Gri görünüyor ya da \"Kısıtlı ayar\" diyorsa: aşağıdan Uygulama bilgisini aç, sağ üstteki ⋮ → \"Kısıtlanmış ayarlara izin ver\", sonra tekrar dene.</string>
     <string name="main_app_info">Uygulama bilgisini aç</string>
+    <string name="method_screen_text">ekran yazısı</string>
+    <string name="method_screenshot">ekran görüntüsü</string>
+    <string name="limited_note">GitHub\'ın saatlik sınırı doldu, bu yüzden sadece README gösteriliyor. Ayrıntılar biraz sonra gelir.</string>
+    <string name="main_battery_btn">Arka planda çalışmasına izin ver (önerilir)</string>
 </resources>

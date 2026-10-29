@@ -211,6 +211,21 @@ object RepoAnaliz {
         }
     }
 
+    /** README'deki resim adresini indirilebilir tam adrese çevirir (göreli yollar raw sunucusundan). */
+    fun resimAdresi(adres: String, sahip: String, ad: String, dal: String): String? {
+        val a = adres.trim()
+        if (a.isEmpty() || a.startsWith("#") || a.startsWith("data:")) return null
+        if (a.startsWith("//")) return "https:$a"
+        if (a.startsWith("http://") || a.startsWith("https://")) {
+            // github.com/.../blob/... resim sayfası değil, ham dosya olsun
+            Regex("^https?://github\\.com/([^/]+)/([^/]+)/blob/(.+)$").find(a)?.let {
+                return "https://raw.githubusercontent.com/${it.groupValues[1]}/${it.groupValues[2]}/${it.groupValues[3]}"
+            }
+            return a
+        }
+        return "https://raw.githubusercontent.com/$sahip/$ad/$dal/" + a.removePrefix("./").removePrefix("/")
+    }
+
     /** Göreli README bağlantısını tam GitHub adresine çevirir; sayfa içi bağlantılar için null. */
     fun adresCoz(adres: String, sahip: String, ad: String, dal: String): String? {
         val a = adres.trim()

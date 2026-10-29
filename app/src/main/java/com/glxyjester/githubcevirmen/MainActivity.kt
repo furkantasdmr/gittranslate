@@ -21,12 +21,15 @@ class MainActivity : Activity() {
     private lateinit var ui: Arayuz
     private lateinit var paketYazisi: TextView
     private lateinit var balonDurumu: TextView
+    private lateinit var pilDugmesi: TextView
 
     override fun onResume() {
         super.onResume()
         val acik = servisAcikMi()
         balonDurumu.text = getString(if (acik) R.string.main_bubble_on else R.string.main_bubble_off)
         balonDurumu.setTextColor(if (acik) ui.yesil else ui.yazi)
+        val pm = getSystemService(POWER_SERVICE) as android.os.PowerManager
+        pilDugmesi.visibility = if (pm.isIgnoringBatteryOptimizations(packageName)) android.view.View.GONE else android.view.View.VISIBLE
     }
 
     private fun servisAcikMi(): Boolean {
@@ -39,6 +42,7 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         ui = Arayuz(this)
+        GitHubApi.baslat(this)
         window.decorView.setBackgroundColor(ui.zemin)
 
         val kolon = ui.kolon().apply { setPadding(ui.dp(20), ui.dp(24), ui.dp(20), ui.dp(32)) }
@@ -61,6 +65,14 @@ class MainActivity : Activity() {
                 startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
             })
         }
+        pilDugmesi = ui.dugme(getString(R.string.main_battery_btn), ana = false) {
+            try {
+                startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName")))
+            } catch (_: Exception) {
+                startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            }
+        }
+        balon.addView(pilDugmesi)
         kolon.addView(balon)
 
         // Nasıl kullanılır

@@ -14,6 +14,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.ScrollView
@@ -52,9 +53,16 @@ class RepoActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         ui = Arayuz(this)
+        GitHubApi.baslat(this)
         hedef = Ayarlar.hedefDil(this)
         kabukKur()
         niyetiIsle(intent)
+    }
+
+    override fun onConfigurationChanged(yeni: android.content.res.Configuration) {
+        super.onConfigurationChanged(yeni)
+        // Döndürünce sayfa baştan yüklenmesin; sadece panel yüksekliği güncellensin
+        panel.layoutParams = panel.layoutParams.apply { height = (resources.displayMetrics.heightPixels * 0.92f).toInt() }
     }
 
     override fun onNewIntent(yeni: Intent) {
@@ -191,7 +199,7 @@ class RepoActivity : Activity() {
             addView(ProgressBar(this@RepoActivity))
             addView(ui.yaziGorunumu(getString(R.string.loading), 15f, renk = ui.sonuk, ust = 12).apply { gravity = Gravity.CENTER })
         })
-        GitHubApi.getir(sahip, ad) { b, h ->
+        GitHubApi.getir(sahip, ad, tam = !readmeModu) { b, h ->
             if (isFinishing || isDestroyed) return@getir
             when {
                 b != null -> { bilgi = b; sayfaYenile(b) }
@@ -228,6 +236,7 @@ class RepoActivity : Activity() {
         b.guncellenme?.let { bilgiler += getString(R.string.updated, onceYaz(it)) }
         ust.addView(ui.yaziGorunumu(bilgiler.joinToString("  ·  "), 13f, renk = ui.sonuk, ust = 6))
         if (b.arsiv) ust.addView(ui.yaziGorunumu(getString(R.string.archived), 14f, renk = ui.uyari, ust = 8))
+        if (b.sinirli) ust.addView(ui.yaziGorunumu(getString(R.string.limited_note), 13f, renk = ui.uyari, ust = 6))
         icerik.addView(ust)
 
         val readme = b.readme?.let { Markdown.ayristir(it, b.ad) }
@@ -255,7 +264,7 @@ class RepoActivity : Activity() {
 
         icerik.addView(ui.dugme(getString(R.string.btn_more_info), ana = false, ust = 14) {
             readmeModu = false
-            sayfaKur(b)
+            if (b.tam) sayfaKur(b) else yukle()
         })
         altDugmeler(b)
         kaydirma.scrollTo(0, 0)
@@ -306,6 +315,7 @@ class RepoActivity : Activity() {
             is Parca.Alinti -> it.metin.length
             is Parca.Tablo -> it.satirlar.size * 40
             is Parca.Baslik -> it.metin.length
+            is Parca.Resim -> 300
         }
     }
 
@@ -340,7 +350,7 @@ class RepoActivity : Activity() {
 
     private fun turKarti(b: RepoBilgisi, readme: Readme?) {
         val turler = RepoAnaliz.projeTurleri(
-            b.kok.map { it.ad }, b.anaDil, b.konular, b.surum?.dosyalar?.map { it.ad }.orEmpty(), b.ad, b.readme,
+            b.kok.orEmpty().map { it.ad }, b.anaDil, b.konular, b.surum?.dosyalar?.map { it.ad }.orEmpty(), b.ad, b.readme,
         )
         val k = ui.kart()
         k.addView(ui.kartBasligi(getString(R.string.sec_type)))
@@ -531,6 +541,7 @@ class RepoActivity : Activity() {
             }
             is Parca.Kod -> kap.addView(kodKutusu(p))
             is Parca.Tablo -> kap.addView(tablo(p))
+            is Parca.Resim -> resimCiz(kap, p, b)
         }
     }
 
@@ -540,6 +551,27 @@ class RepoActivity : Activity() {
         }.distinctBy { it.second }.take(6)
         gercek.forEach { (m, adres) ->
             kap.addView(ui.baglantiYazisi("🔗 $m", ust = 2) { ui.ac(adres) })
+        }
+    }
+
+    /** README'deki ekran görüntüsü. Yüklenemezse sessizce kaybolur; dokununca tarayıcıda açılır. */
+    private fun resimCiz(kap: LinearLayout, r: Parca.Resim, b: RepoBilgisi) {
+        val adres = RepoAnaliz.resimAdresi(r.adres, b.sahip, b.ad, b.dal) ?: return
+        val iv = ImageView(this).apply {
+            adjustViewBounds = true
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            contentDescription = r.aciklama
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                .apply { topMargin = ui.dp(10) }
+            minimumHeight = ui.dp(40)
+            background = GradientDrawable().apply { cornerRadius = ui.dpf(8); setColor(Color.argb(20, 128, 128, 128)) }
+            setOnClickListener { ui.ac(adres) }
+        }
+        kap.addView(iv)
+        ResimYukleyici.yukle(adres, resources.displayMetrics.widthPixels) { bmp ->
+            if (isDestroyed) return@yukle
+            if (bmp == null) iv.visibility = View.GONE
+            else { iv.background = null; iv.minimumHeight = 0; iv.setImageBitmap(bmp) }
         }
     }
 
@@ -622,7 +654,7 @@ class RepoActivity : Activity() {
     // ---------------- Dosyalar ve alt düğmeler ----------------
 
     private fun dosyaKarti(b: RepoBilgisi) {
-        val onemli = b.kok.mapNotNull { o -> RepoAnaliz.dosyaTuru(o.ad, o.klasor)?.let { o to it } }
+        val onemli = b.kok.orEmpty().mapNotNull { o -> RepoAnaliz.dosyaTuru(o.ad, o.klasor)?.let { o to it } }
             .sortedWith(compareBy({ !it.first.klasor }, { it.second.ordinal }))
             .take(14)
         if (onemli.isEmpty()) return

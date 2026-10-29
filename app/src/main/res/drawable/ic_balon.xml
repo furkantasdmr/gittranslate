@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Balon ikonu: uygulama ikonundaki iki konuşma balonu (文 → A), aynı renkler -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="54dp" android:height="54dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#F6EEDD" android:strokeColor="#141414" android:strokeWidth="3"
+        android:pathData="M54,2 a52,52 0 1,1 0,104 a52,52 0 1,1 0,-104z" />
+    <!-- siyah balon: 文 -->
+    <path android:fillColor="#141414"
+        android:pathData="M27,20 H61 A9,9 0 0 1 70,29 V55 A9,9 0 0 1 61,64 H40 L29,74 V64 H27 A9,9 0 0 1 18,55 V29 A9,9 0 0 1 27,20 Z" />
+    <path android:strokeColor="#F6EEDD" android:strokeWidth="4" android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M44,27.5 V31.5 M32,35.5 H56 M37.5,38.5 C40,46 45,52 54,56 M50.5,38.5 C48,46 43,52 34,56" />
+    <!-- kırmızı balon: A -->
+    <path android:fillColor="#E8321F" android:strokeColor="#F6EEDD" android:strokeWidth="3.5" android:strokeLineJoin="round"
+        android:pathData="M55,45 H85 A9,9 0 0 1 94,54 V77 A9,9 0 0 1 85,86 H81 V92 L73,86 H55 A9,9 0 0 1 46,77 V54 A9,9 0 0 1 55,45 Z" />
+    <path android:strokeColor="#F6EEDD" android:strokeWidth="4.4" android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M61,79 L70,53.5 L79,79 M64.3,70.5 H75.7" />
+</vector>

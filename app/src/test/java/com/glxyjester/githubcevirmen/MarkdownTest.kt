@@ -81,6 +81,18 @@ class MarkdownTest {
     }
 
     @Test
+    fun resimlerRozetlerHaric() {
+        val r = Markdown.ayristir(
+            "# X\n\n[![CI](https://github.com/a/b/actions/workflows/ci.yml/badge.svg)](x)\n\n" +
+                "![Ekran](docs/shot.png)\n\n<p align=\"center\"><img src=\"https://x.com/demo.gif\" alt=\"demo\"></p>\n\nMetin ![küçük](i.png) burada.\n",
+            "x",
+        )
+        val resimler = r.bolumler.flatMap { it.parcalar }.filterIsInstance<Parca.Resim>()
+        assertEquals(listOf(Parca.Resim("Ekran", "docs/shot.png"), Parca.Resim("demo", "https://x.com/demo.gif")), resimler)
+        assertEquals("Metin burada.", r.ozet())
+    }
+
+    @Test
     fun setextVeGirintiliKod() {
         val r = Markdown.ayristir("Başlık\n======\n\nMetin.\n\nInstall\n-------\n\n    pip install x\n", null)
         assertEquals("Başlık", r.baslik)
