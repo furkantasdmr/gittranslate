@@ -1,5 +1,10 @@
 # Changelog / Değişiklikler
 
+## 1.0.1
+
+- **EN:** Update address moved to the new repository (`furkantasdmr/gittranslate`).
+- **TR:** Güncelleme adresi yeni repoya (`furkantasdmr/gittranslate`) taşındı.
+
 ## 1.0.0
 
 **English**
