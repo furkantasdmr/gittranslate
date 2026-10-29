@@ -91,20 +91,40 @@ jobs:
             fi
           done
 
+      # Sürüm sadece VERSION dosyası yeni bir numaraya geçince yayınlanır (her gönderimde değil)
+      - name: Sürüm numarası
+        id: surum
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V=$(tr -d '[:space:]' < VERSION)
+          echo "ad=$V" >> "$GITHUB_OUTPUT"
+          if gh release view "v$V" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "yeni=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::v$V zaten yayında; APK sadece Actions'a yüklendi. Yeni sürüm için VERSION'u artır."
+          else
+            echo "yeni=true" >> "$GITHUB_OUTPUT"
+          fi
+          # Uygulama içi güncelleyici bu dosyadan derleme numarasını okur
+          printf '{"kod":%s,"ad":"%s"}\n' "$GITHUB_RUN_NUMBER" "$V" > surum.json
+
       - uses: actions/upload-artifact@v4
         with:
           name: GitTranslate
           path: GitTranslate.apk
 
       - name: Release olarak yayınla (telefondan kolay indirmek için)
+        if: steps.surum.outputs.yeni == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.1.${{ github.run_number }}
-          name: GitTranslate v1.1.${{ github.run_number }}
+          tag_name: v${{ steps.surum.outputs.ad }}
+          name: GitTranslate v${{ steps.surum.outputs.ad }}
           body: |
             📱 Download `GitTranslate.apk` on your phone and install it. See the README for setup.
             📱 `GitTranslate.apk` dosyasını telefonuna indirip kur. Kurulum için README'ye bak.
 
             🔏 SHA-256: `${{ env.IMZA_SHA }}`
-          files: GitTranslate.apk
+          files: |
+            GitTranslate.apk
+            surum.json
           make_latest: true

@@ -18,7 +18,8 @@ android {
         minSdk = 24
         targetSdk = 35
         versionCode = buildNumber
-        versionName = "1.1.$buildNumber"
+        // Görünen sürüm VERSION dosyasından (ör. 1.0.0); versionCode her derlemede artar
+        versionName = rootProject.file("VERSION").readText().trim()
         // Telefonlar ARM işlemci kullanır; x86 kütüphaneleri APK'yı boşuna büyütür
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }

@@ -61,14 +61,18 @@ object Guncelleyici {
                     if (b.responseCode != 200) null else {
                         val o = JSONObject(b.inputStream.bufferedReader().use { it.readText() })
                         val etiket = o.optString("tag_name")
-                        // Etiket v1.1.N; N = derleme numarası = versionCode
-                        val kod = etiket.substringAfterLast('.').toLongOrNull() ?: 0L
                         val dosyalar = o.optJSONArray("assets")
-                        var adres = ""; var boyut = 0L
+                        var adres = ""; var boyut = 0L; var bilgiAdresi = ""
                         if (dosyalar != null) for (i in 0 until dosyalar.length()) {
                             val d = dosyalar.getJSONObject(i)
-                            if (d.optString("name") == DOSYA) { adres = d.optString("browser_download_url"); boyut = d.optLong("size") }
+                            when (d.optString("name")) {
+                                DOSYA -> { adres = d.optString("browser_download_url"); boyut = d.optLong("size") }
+                                "surum.json" -> bilgiAdresi = d.optString("browser_download_url")
+                            }
                         }
+                        // Derleme numarası (versionCode) surum.json'da; yoksa eski düzen: etiketin son sayısı
+                        val kod = bilgiAdresi.takeIf { it.isNotEmpty() }?.let { derlemeNo(it) }
+                            ?: etiket.substringAfterLast('.').toLongOrNull() ?: 0L
                         if (kod > mevcut && adres.isNotEmpty()) Yeni(kod, etiket, adres, boyut) else null
                     }
                 } finally { b.disconnect() }
@@ -80,6 +84,16 @@ object Guncelleyici {
             }
         }
     }
+
+    private fun derlemeNo(adres: String): Long? = try {
+        val b = URL(adres).openConnection() as HttpURLConnection
+        b.connectTimeout = 10000; b.readTimeout = 10000; b.instanceFollowRedirects = true
+        b.setRequestProperty("User-Agent", "GitTranslate-Android")
+        try {
+            if (b.responseCode != 200) null
+            else JSONObject(b.inputStream.bufferedReader().use { it.readText() }).optLong("kod").takeIf { it > 0 }
+        } finally { b.disconnect() }
+    } catch (_: Exception) { null }
 
     /** Bilinmeyen kaynaktan kurma izni gerekiyorsa ayar sayfasını açar ve false döner. */
     fun izinVarMi(a: Activity): Boolean {
