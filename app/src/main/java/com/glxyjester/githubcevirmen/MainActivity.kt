@@ -2,7 +2,10 @@ package com.glxyjester.githubcevirmen
 
 import android.app.Activity
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.text.InputType
 import android.view.inputmethod.EditorInfo
 import android.widget.AdapterView
@@ -17,6 +20,21 @@ class MainActivity : Activity() {
 
     private lateinit var ui: Arayuz
     private lateinit var paketYazisi: TextView
+    private lateinit var balonDurumu: TextView
+
+    override fun onResume() {
+        super.onResume()
+        val acik = servisAcikMi()
+        balonDurumu.text = getString(if (acik) R.string.main_bubble_on else R.string.main_bubble_off)
+        balonDurumu.setTextColor(if (acik) ui.yesil else ui.yazi)
+    }
+
+    private fun servisAcikMi(): Boolean {
+        val liste = Settings.Secure.getString(contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: return false
+        val tam = "$packageName/${BalonServisi::class.java.name}"
+        val kisa = "$packageName/.${BalonServisi::class.java.simpleName}"
+        return liste.split(':').any { it.equals(tam, true) || it.equals(kisa, true) }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,8 +46,25 @@ class MainActivity : Activity() {
         kolon.addView(ui.yaziGorunumu(getString(R.string.app_name), 26f, kalin = true))
         kolon.addView(ui.yaziGorunumu(getString(R.string.main_intro), 15f, renk = ui.sonuk, ust = 6))
 
+        // GitHub'da balon (erişilebilirlik servisi)
+        val balon = ui.kart(ust = 18)
+        balon.addView(ui.kartBasligi(getString(R.string.main_bubble_title)))
+        balon.addView(ui.yaziGorunumu(getString(R.string.main_bubble_desc), 14.5f, renk = ui.sonuk))
+        balonDurumu = ui.yaziGorunumu("", 15f, kalin = true, ust = 10)
+        balon.addView(balonDurumu)
+        balon.addView(ui.dugme(getString(R.string.main_bubble_btn)) {
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        })
+        if (Build.VERSION.SDK_INT >= 33) {
+            balon.addView(ui.yaziGorunumu(getString(R.string.main_restricted), 13.5f, renk = ui.sonuk, ust = 10))
+            balon.addView(ui.dugme(getString(R.string.main_app_info), ana = false) {
+                startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+            })
+        }
+        kolon.addView(balon)
+
         // Nasıl kullanılır
-        val nasil = ui.kart(ust = 18)
+        val nasil = ui.kart()
         nasil.addView(ui.kartBasligi(getString(R.string.main_how_title)))
         listOf(R.string.main_how_1, R.string.main_how_2, R.string.main_how_3).forEach {
             nasil.addView(ui.yaziGorunumu(getString(it), 15f, ust = 4))

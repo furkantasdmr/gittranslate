@@ -49,26 +49,39 @@ object CeviriMotoru {
         val anahtar = "$hedef|$m"
         onbellek.get(anahtar)?.let { sonuc(it.ifEmpty { null }); return }
 
+        if (internetOnce) {
+            // Daha iyi çeviri için önce Google Çeviri; olmazsa telefonun içindeki çevirmen
+            cevrimici(m, null, hedef) { c ->
+                if (c != null) kaydet(anahtar, m, c, sonuc) else cihazdaCevir(m, hedef, anahtar, sonuc)
+            }
+            return
+        }
+        cihazdaCevir(m, hedef, anahtar, sonuc)
+    }
+
+    /** true: önce internetten (Google Çeviri) çevir. */
+    var internetOnce = true
+
+    private fun cihazdaCevir(m: String, hedef: String, anahtar: String, sonuc: (String?) -> Unit) {
         dilTanima.identifyLanguage(m)
             .addOnSuccessListener { etiket ->
                 val kaynak = kaynakDil(etiket, m)
                 if (kaynak == hedef) { onbellek.put(anahtar, ""); sonuc(null); return@addOnSuccessListener }
                 if (kaynak == null) {
-                    // Dil anlaşılamadı: internetten "otomatik" dene
-                    cevrimici(m, null, hedef) { c -> kaydet(anahtar, m, c, sonuc) }
+                    if (internetOnce) sonuc(null) else cevrimici(m, null, hedef) { c -> kaydet(anahtar, m, c, sonuc) }
                     return@addOnSuccessListener
                 }
                 cevirmenAl(kaynak, hedef) { cevirmen ->
                     if (cevirmen == null) {
-                        cevrimici(m, kaynak, hedef) { c -> kaydet(anahtar, m, c, sonuc) }
+                        if (internetOnce) sonuc(null) else cevrimici(m, kaynak, hedef) { c -> kaydet(anahtar, m, c, sonuc) }
                         return@cevirmenAl
                     }
                     cevirmen.translate(m)
                         .addOnSuccessListener { c -> kaydet(anahtar, m, c, sonuc) }
-                        .addOnFailureListener { cevrimici(m, kaynak, hedef) { c -> kaydet(anahtar, m, c, sonuc) } }
+                        .addOnFailureListener { sonuc(null) }
                 }
             }
-            .addOnFailureListener { cevrimici(m, null, hedef) { c -> kaydet(anahtar, m, c, sonuc) } }
+            .addOnFailureListener { sonuc(null) }
     }
 
     private fun kaydet(anahtar: String, metin: String, ceviri: String?, sonuc: (String?) -> Unit) {

@@ -33,6 +33,7 @@
             android:label="@string/share_label"
             android:theme="@style/PanelTheme"
             android:launchMode="singleTop"
+            android:taskAffinity=""
             android:excludeFromRecents="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
@@ -41,5 +42,19 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
+
+        <!-- GitHub açıkken sağdaki 📖 balonu -->
+        <service
+            android:name=".BalonServisi"
+            android:exported="true"
+            android:label="@string/service_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/balon_servisi" />
+        </service>
     </application>
 </manifest>

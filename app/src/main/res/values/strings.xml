@@ -106,4 +106,18 @@
     <string name="packs_partial">⚠️ %1$d/%2$d downloaded. The others will be translated over the internet.</string>
     <string name="main_open_github">Open GitHub</string>
     <string name="github_missing">GitHub app not found</string>
+    <string name="bubble_no_repo">Couldn\'t tell which repository this is. Open a repository page and tap the bubble again.</string>
+    <string name="bubble_detected">Repository: %1$s (found from %2$s)</string>
+    <string name="bubble_not_detected">No repository found on this screen yet (%d texts read).</string>
+    <string name="bubble_desc">Open README in my language</string>
+    <string name="btn_more_info">More about this repository</string>
+    <string name="service_label">GitHub Çevirmen bubble</string>
+    <string name="service_description">Shows a bubble on the right while the GitHub app is open. Tapping it opens the README of the repository on screen, translated into your language. It reads the screen only to find the repository name and does nothing in other apps.</string>
+    <string name="main_bubble_title">Bubble in GitHub</string>
+    <string name="main_bubble_desc">Turn this on once: while you are inside a repository in the GitHub app, a 📖 bubble appears on the right. Tap it and the README opens in your language. Hold it to see which repository it found; drag it to move.</string>
+    <string name="main_bubble_btn">Turn on the bubble (Accessibility settings)</string>
+    <string name="main_bubble_on">✅ Bubble is on</string>
+    <string name="main_bubble_off">⚪ Bubble is off — under Accessibility → Downloaded apps, turn on GitHub Çevirmen.</string>
+    <string name="main_restricted">If it\'s greyed out or says \"Restricted setting\": open App info below, tap ⋮ at the top right → \"Allow restricted settings\", then try again.</string>
+    <string name="main_app_info">Open App info</string>
 </resources>

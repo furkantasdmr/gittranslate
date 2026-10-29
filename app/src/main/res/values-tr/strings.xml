@@ -106,4 +106,18 @@
     <string name="packs_partial">⚠️ %1$d/%2$d indi. İnmeyenler internetten çevrilecek.</string>
     <string name="main_open_github">GitHub\'ı aç</string>
     <string name="github_missing">GitHub uygulaması bulunamadı</string>
+    <string name="bubble_no_repo">Hangi repo olduğunu anlayamadım. Bir repo sayfası açıp balona tekrar dokun.</string>
+    <string name="bubble_detected">Repo: %1$s (%2$s ile bulundu)</string>
+    <string name="bubble_not_detected">Bu ekranda henüz repo bulunamadı (%d yazı okundu).</string>
+    <string name="bubble_desc">README\'yi benim dilimde aç</string>
+    <string name="btn_more_info">Bu repo hakkında daha fazla</string>
+    <string name="service_label">GitHub Çevirmen balonu</string>
+    <string name="service_description">GitHub uygulaması açıkken sağ kenarda bir balon gösterir. Dokununca ekrandaki reponun README\'sini senin diline çevrilmiş olarak açar. Ekranı yalnızca repo adını bulmak için okur, başka uygulamalarda hiçbir şey yapmaz.</string>
+    <string name="main_bubble_title">GitHub\'da balon</string>
+    <string name="main_bubble_desc">Bunu bir kez aç: GitHub uygulamasında bir reponun içindeyken sağda 📖 balonu çıkar. Dokununca README senin dilinde açılır. Basılı tutarsan hangi repoyu bulduğunu gösterir; sürükleyerek yerini değiştirebilirsin.</string>
+    <string name="main_bubble_btn">Balonu aç (Erişilebilirlik ayarları)</string>
+    <string name="main_bubble_on">✅ Balon açık</string>
+    <string name="main_bubble_off">⚪ Balon kapalı — Erişilebilirlik → İndirilen uygulamalar altında GitHub Çevirmen\'i aç.</string>
+    <string name="main_restricted">Gri görünüyor ya da \"Kısıtlı ayar\" diyorsa: aşağıdan Uygulama bilgisini aç, sağ üstteki ⋮ → \"Kısıtlanmış ayarlara izin ver\", sonra tekrar dene.</string>
+    <string name="main_app_info">Uygulama bilgisini aç</string>
 </resources>

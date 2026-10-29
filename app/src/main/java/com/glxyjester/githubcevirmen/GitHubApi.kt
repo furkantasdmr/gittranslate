@@ -70,6 +70,29 @@ object GitHubApi {
         }
     }
 
+    private val adOnbellegi = HashMap<String, List<String>>()
+
+    /** Bir kişinin/kurumun repo adları (kesik görünen adı tamamlamak için). Hata olursa boş liste. */
+    fun repoAdlari(sahip: String, sonuc: (List<String>) -> Unit) {
+        adOnbellegi[sahip.lowercase()]?.let { sonuc(it); return }
+        havuz.execute {
+            val adlar = ArrayList<String>()
+            try {
+                for (sayfa in 1..3) {
+                    val c = iste("https://api.github.com/users/$sahip/repos?per_page=100&sort=pushed&page=$sayfa")
+                    if (c.kod != 200) break
+                    val a = JSONArray(c.govde)
+                    for (i in 0 until a.length()) adlar.add(a.getJSONObject(i).optString("name"))
+                    if (a.length() < 100) break
+                }
+            } catch (_: Exception) {}
+            ana.post {
+                if (adlar.isNotEmpty()) adOnbellegi[sahip.lowercase()] = adlar
+                sonuc(adlar)
+            }
+        }
+    }
+
     private fun yukle(sahip: String, ad: String): RepoBilgisi {
         val temel = "https://api.github.com/repos/$sahip/$ad"
         // Dört isteği aynı anda gönder

@@ -27,6 +27,14 @@ import java.util.Locale
  */
 class RepoActivity : Activity() {
 
+    companion object {
+        const val MOD = "mod"
+        /** Balondan açılınca: sadece README, çevrilmiş */
+        const val MOD_README = "readme"
+    }
+
+    private var readmeModu = false
+
     private lateinit var ui: Arayuz
     private lateinit var panel: LinearLayout
     private lateinit var icerik: LinearLayout
@@ -147,7 +155,7 @@ class RepoActivity : Activity() {
                 hedef = diller[i].first
                 Ayarlar.hedefDilKaydet(this, hedef)
                 dilDugmesiniGuncelle()
-                bilgi?.let { sayfaKur(it) }
+                bilgi?.let { sayfaYenile(it) }
             }
             .show()
     }
@@ -155,6 +163,7 @@ class RepoActivity : Activity() {
     // ---------------- Veri ----------------
 
     private fun niyetiIsle(n: Intent) {
+        readmeModu = n.getStringExtra(MOD) == MOD_README
         val metin = when (n.action) {
             Intent.ACTION_SEND -> listOfNotNull(
                 n.getStringExtra(Intent.EXTRA_TEXT), n.getStringExtra(Intent.EXTRA_SUBJECT),
@@ -185,7 +194,7 @@ class RepoActivity : Activity() {
         GitHubApi.getir(sahip, ad) { b, h ->
             if (isFinishing || isDestroyed) return@getir
             when {
-                b != null -> { bilgi = b; sayfaKur(b) }
+                b != null -> { bilgi = b; sayfaYenile(b) }
                 h is ApiHatasi.Bulunamadi -> mesajGoster(getString(R.string.err_not_found), tekrar = true)
                 h is ApiHatasi.Sinir -> mesajGoster(getString(R.string.err_limit, h.dakika), tekrar = true)
                 h is ApiHatasi.Ag -> mesajGoster(getString(R.string.err_network, h.mesaj), tekrar = true)
@@ -201,6 +210,56 @@ class RepoActivity : Activity() {
     }
 
     // ---------------- Sayfa ----------------
+
+    private fun sayfaYenile(b: RepoBilgisi) = if (readmeModu) readmeSayfasiKur(b) else sayfaKur(b)
+
+    /** Balondan açılan sade sayfa: kısa açıklama + README'nin tamamı, kullanıcının dilinde. */
+    private fun readmeSayfasiKur(b: RepoBilgisi) {
+        kuyruk = CeviriKuyrugu()
+        orijinalGoster = false
+        baslikYazisi.text = "${b.sahip} / ${b.ad}"
+        icerik.removeAllViews()
+
+        val ust = ui.kart(ust = 14)
+        b.aciklama?.takeIf { it.isNotBlank() }?.let { ust.addView(cevrilen(it, 15.5f, kalin = true)) }
+        val bilgiler = ArrayList<String>()
+        bilgiler += "★ " + yildizYaz(b.yildiz)
+        b.anaDil?.let { bilgiler += it }
+        b.guncellenme?.let { bilgiler += getString(R.string.updated, onceYaz(it)) }
+        ust.addView(ui.yaziGorunumu(bilgiler.joinToString("  ·  "), 13f, renk = ui.sonuk, ust = 6))
+        if (b.arsiv) ust.addView(ui.yaziGorunumu(getString(R.string.archived), 14f, renk = ui.uyari, ust = 8))
+        icerik.addView(ust)
+
+        val readme = b.readme?.let { Markdown.ayristir(it, b.ad) }
+        val k = ui.kart()
+        k.addView(ui.kartBasligi("📖 README"))
+        if (readme == null || readme.bolumler.isEmpty()) {
+            k.addView(ui.yaziGorunumu(getString(R.string.no_readme), 15f, renk = ui.sonuk))
+        } else {
+            // Uzun README'lerde ilk ~6000 harf açık, gerisi başlığa dokununca açılır (hızlı kalsın)
+            var toplam = 0
+            readme.bolumler.forEach { bol ->
+                val acik = toplam < 6000
+                when {
+                    bol.tur == BolumTuru.GIRIS -> parcalariCiz(k, bol.parcalar, b)
+                    acik -> {
+                        k.addView(cevrilen(bol.baslik, 18f, kalin = true, ust = 20))
+                        parcalariCiz(k, bol.parcalar, b)
+                    }
+                    else -> katlanir(k, bol.baslik, false) { govde -> parcalariCiz(govde, bol.parcalar, b) }
+                }
+                toplam += boyut(bol)
+            }
+        }
+        icerik.addView(k)
+
+        icerik.addView(ui.dugme(getString(R.string.btn_more_info), ana = false, ust = 14) {
+            readmeModu = false
+            sayfaKur(b)
+        })
+        altDugmeler(b)
+        kaydirma.scrollTo(0, 0)
+    }
 
     private fun sayfaKur(b: RepoBilgisi) {
         kuyruk = CeviriKuyrugu()

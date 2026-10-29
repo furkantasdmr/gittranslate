@@ -41,5 +41,8 @@ dependencies {
     implementation("com.google.mlkit:translate:17.0.3")
     implementation("com.google.mlkit:language-id:17.0.6")
 
+    // Balon: ekrandaki repo adını görüntüden okumak için (Latin harfleri, model APK içinde)
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+
     testImplementation("junit:junit:4.13.2")
 }

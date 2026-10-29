@@ -1,5 +1,7 @@
 # GitHub Çevirmen · Repoyu anlat
 
+**En kolay kullanım:** Uygulamada balonu bir kez aç. GitHub'da bir reponun içindeyken sağdaki 📖 balonuna dokun, README senin dilinde açılsın. Balon hangi repoda olduğunu ekrandaki başlıktan (gerekirse ekran görüntüsünden) bulur; README'yi GitHub'dan çekip internetten çevirir.
+
 GitHub'da bir repoya girdin ama ne işe yaradığını, nasıl kurulduğunu, nereye bakman gerektiğini anlamadın mı? Hele README Çince ya da İngilizceyse?
 
 Bu küçük Android uygulaması GitHub uygulamasının **Paylaş** menüsüne bir seçenek ekler: **Repoyu anlat**. Dokununca GitHub'dan çıkmadan, üstte açılan bir panelde repo **senin dilinde ve sade bölümlerle** gösterilir:
