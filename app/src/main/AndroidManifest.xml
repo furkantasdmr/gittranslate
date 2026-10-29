@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Dil paketlerini ilk seferde indirmek için -->
+    <!-- GitHub'dan repo bilgisi almak ve dil paketlerini indirmek için -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Android 11+ için: GitHub uygulamasının yüklü olup olmadığını görebilmek -->
+    <!-- "GitHub'ı aç" düğmesi için (Android 11+) -->
     <queries>
         <package android:name="com.github.android" />
     </queries>
@@ -26,17 +26,20 @@
             </intent-filter>
         </activity>
 
-        <service
-            android:name=".CeviriServisi"
+        <!-- GitHub uygulamasında Paylaş → "Repoyu anlat" -->
+        <activity
+            android:name=".RepoActivity"
             android:exported="true"
-            android:label="@string/service_label"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            android:label="@string/share_label"
+            android:theme="@style/PanelTheme"
+            android:launchMode="singleTop"
+            android:excludeFromRecents="true"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
             </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_config" />
-        </service>
+        </activity>
     </application>
 </manifest>

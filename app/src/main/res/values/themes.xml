@@ -1,10 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:colorPrimary">#1F6FEB</item>
-        <item name="android:colorAccent">#1F6FEB</item>
-        <item name="android:statusBarColor">#F6F8FA</item>
+        <item name="android:colorPrimary">#0969DA</item>
+        <item name="android:colorAccent">#0969DA</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowBackground">@android:color/white</item>
+    </style>
+
+    <!-- GitHub'ın üstünde, alttan açılan yarı saydam panel -->
+    <style name="PanelTheme" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:colorPrimary">#0969DA</item>
+        <item name="android:colorAccent">#0969DA</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.Translucent</item>
     </style>
 </resources>

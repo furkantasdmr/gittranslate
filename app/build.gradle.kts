@@ -40,6 +40,6 @@ dependencies {
     // Cihaz içinde, internetsiz çalışan Google ML Kit
     implementation("com.google.mlkit:translate:17.0.3")
     implementation("com.google.mlkit:language-id:17.0.6")
-    // Yazıyı ekran görüntüsünden okumak için (Çince + Latin), model APK'nın içinde
-    implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
+
+    testImplementation("junit:junit:4.13.2")
 }

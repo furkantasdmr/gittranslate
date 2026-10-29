@@ -1,35 +1,46 @@
-# GitHub Çevirmen
+# GitHub Çevirmen · Repoyu anlat
 
-GitHub Android uygulamasında Çince, İngilizce, Japonca ya da başka bir dilde yazı gördüğünde onu **anında Türkçeye** (veya seçtiğin dile) çevirip yazının tam üstüne yazan küçük bir yardımcı uygulama.
+GitHub'da bir repoya girdin ama ne işe yaradığını, nasıl kurulduğunu, nereye bakman gerektiğini anlamadın mı? Hele README Çince ya da İngilizceyse?
 
-- Sadece GitHub uygulaması açıkken çalışır, başka uygulamalarda hiçbir şey yapmaz.
-- Çeviri önce Google ML Kit ile **telefonun içinde** yapılır. Dil paketi inemezse (ör. Google Play Hizmetleri olmayan telefonlarda) yalnızca çevrilecek yazılar Google Çeviri'ye gönderilerek internetten çevrilir.
-- Uygulamanın yazıyı metin olarak vermediği yerlerde (ör. README) ekran görüntüsünden yazıyı **telefonun içinde okur (OCR)**. Android 11 veya üstü gerekir.
-- Çevrilen kutuların solunda ince mavi bir şerit olur. Kutulara dokunursan dokunma alttaki GitHub öğesine geçer.
-- Sağ kenardaki mavi balon: dokun → çeviri aç/kapat, basılı tut ve sürükle → yerini değiştir. ⏳ görürsen dil paketi iniyordur.
+Bu küçük Android uygulaması GitHub uygulamasının **Paylaş** menüsüne bir seçenek ekler: **Repoyu anlat**. Dokununca GitHub'dan çıkmadan, üstte açılan bir panelde repo **senin dilinde ve sade bölümlerle** gösterilir:
+
+- **Bu repo ne işe yarar?** Açıklama ve README'nin girişi, çevrilmiş hâliyle. Yıldız sayısı, son güncelleme, arşiv uyarısı.
+- **Ne tür bir proje?** Telefonda mı kullanılır, bilgisayarda mı? Python mu, Android uygulaması mı, sadece bir liste mi? Lisans ne izin veriyor?
+- **Hazır indirmeler:** Son sürümdeki APK / EXE / DMG dosyaları, tek dokunuşla.
+- **Kurulum** ve **Kullanım:** README'den otomatik bulunur. Komutlar çevrilmez, **Kopyala** düğmesiyle alınır.
+- **README'nin geri kalanı:** Bölüm bölüm, açılıp kapanır.
+- **Önemli dosya ve klasörler:** `docs/`, `examples/`, `LICENSE` gibi dosyaların ne olduğu.
+
+## İlkeler
+
+- **Yapay zekâ yok.** Her şey GitHub'ın standart bilgilerinden kurallarla çıkarılır, sonra çevrilir.
+- **Ücretsiz, hesap ve anahtar gerektirmez.** GitHub'ın herkese açık API'si kullanılır (saatte ~15 repo).
+- **Çeviri telefonun içinde yapılır** (Google ML Kit). Dil paketi inemezse metin Google Çeviri'ye gönderilerek çevrilir.
+- Arayüz Türkçe ve İngilizce. Çeviri dili 19 dilden seçilebilir, varsayılanı telefonun dilidir.
 
 ## Kurulum
 
-1. Bu reponun **Releases** bölümünden en son `GitHub-Cevirmen.apk` dosyasını telefonuna indir ve kur.
-2. Uygulamayı aç, **Erişilebilirlik ayarlarını aç** düğmesine bas, *İndirilen uygulamalar* altında **GitHub Çevirmen**'i aç.
-   - Android 13 ve üstünde gri/kısıtlı görünürse: uygulama bilgisi → sağ üst ⋮ → **Kısıtlanmış ayarlara izin ver**, sonra tekrar dene.
-3. (Önerilir) **Şimdi indir** ile sık kullanılan dil paketlerini Wi-Fi'de önceden indir.
-4. GitHub'ı aç, yabancı bir repoya gir. Bu kadar.
+1. [Releases](../../releases/latest) bölümünden `GitHub-Cevirmen.apk` dosyasını indirip kur.
+2. GitHub uygulamasında bir repo aç → **Paylaş** → **Repoyu anlat**.
 
-## Nasıl çalışıyor?
+İstersen uygulamayı açıp bağlantı da yapıştırabilirsin.
+
+## Kod
 
 | Dosya | Ne yapar |
 |---|---|
-| `CeviriServisi.kt` | Erişilebilirlik servisi. GitHub öndeyken ekrandaki yazıları ve konumlarını okur. |
-| `CeviriMotoru.kt` | Dili tanır (ML Kit Language ID) ve çevirir (ML Kit Translate), sonuçları önbellekte tutar. |
-| `CeviriKatmani.kt` | Dokunmaları geçiren şeffaf katman; çevirileri orijinal yazının üstüne çizer. |
-| `MainActivity.kt` | Kurulum ve ayar ekranı. |
-| `Ayarlar.kt` | Hedef dil, açık/kapalı durumu, çalışılacak uygulama listesi. |
+| `RepoActivity.kt` | Paylaş menüsünden açılan panel ve tüm bölümler |
+| `GitHubApi.kt` | Repo bilgisi, README, kök dosyalar, son sürüm (4 istek) |
+| `Markdown.kt` | README'yi başlık/paragraf/liste/kod/tablo parçalarına ve bölümlere ayırır |
+| `RepoAnaliz.kt` | Proje türü, lisansın anlamı, dosya açıklamaları, bölüm türleri (kurallarla) |
+| `CeviriMotoru.kt` | Dil tanıma + çeviri, önbellek |
+| `MainActivity.kt` | Açılış ekranı |
 
-Başka bir uygulamada da çalışsın istersen `Ayarlar.kt` içindeki `HEDEF_UYGULAMALAR` listesine o uygulamanın paket adını ekle.
+`Markdown.kt` ve `RepoAnaliz.kt` Android'den bağımsızdır, `app/src/test` altında birim testleri var.
+Yeni bir dil için bölüm anahtar kelimesi eklemek istersen `RepoAnaliz.kt` içindeki listelere eklemen yeter.
 
 ## Derleme
 
-Bilgisayar gerekmez: `main` dalına her gönderimde GitHub Actions APK'yı derleyip yeni bir Release yayınlar.
+Bilgisayar gerekmez: `main` dalına her gönderimde GitHub Actions testleri çalıştırır, APK'yı derler ve yeni bir Release yayınlar.
 
-> Not: APK standart debug imzasıyla imzalanır ve bu imza her derlemede değişebilir. Yeni sürüm "uygulama yüklenmedi" derse önce eskisini kaldırıp sonra kur.
+> Not: APK standart debug imzasıyla imzalanır. Yeni sürüm "uygulama yüklenmedi" derse önce eskisini kaldır.
