@@ -32,7 +32,7 @@ jobs:
         if: failure()
         run: |
           # Derleme hataları ve başarısız testler, Actions sayfasında "annotation" olarak görünsün
-          grep -E "^e: |error:|What went wrong|FAILED" build.log | head -40 | while IFS= read -r l; do echo "::error::$l"; done || true
+          grep -E "^e: |[Ee]rror:|What went wrong|FAILED|\.(kt|xml):[0-9]+" build.log | head -60 | while IFS= read -r l; do echo "::error::$l"; done || true
           for f in app/build/test-results/*/*.xml; do
             [ -f "$f" ] || continue
             python3 - "$f" <<'PY'
