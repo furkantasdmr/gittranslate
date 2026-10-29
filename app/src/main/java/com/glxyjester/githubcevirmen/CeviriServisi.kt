@@ -10,7 +10,6 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
-import android.widget.Toast
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.WindowManager
@@ -81,7 +80,8 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
     private fun onDurumunuKontrolEt() {
         val paket = try { rootInActiveWindow?.packageName?.toString() } catch (_: Exception) { null }
         if (paket == packageName) return // kendi balonumuz, durum değişmedi
-        val onde = paket != null && paket in Ayarlar.HEDEF_UYGULAMALAR
+        val onde = (paket != null && paket in Ayarlar.HEDEF_UYGULAMALAR) ||
+            (paket == null && githubKokleri().isNotEmpty())
         if (onde != githubOnde) {
             githubOnde = onde
             if (onde) pencereleriEkle() else pencereleriKaldir()
@@ -109,19 +109,38 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
     private var sonAdaySayisi = 0
     private var sonTaramaZamani = 0L
     private var ornekYazi = ""
+    private var sonKokSayisi = 0
+    private val adaylar = ArrayList<String>()
+
+    /** GitHub'a ait tüm pencerelerin kökleri; olmazsa aktif pencere. */
+    private fun githubKokleri(): List<AccessibilityNodeInfo> {
+        val liste = ArrayList<AccessibilityNodeInfo>()
+        try {
+            for (w in windows) {
+                val k = w.root ?: continue
+                if (k.packageName?.toString() in Ayarlar.HEDEF_UYGULAMALAR) liste.add(k)
+            }
+        } catch (_: Exception) {}
+        if (liste.isEmpty()) {
+            val k = try { rootInActiveWindow } catch (_: Exception) { null }
+            if (k != null && k.packageName?.toString() in Ayarlar.HEDEF_UYGULAMALAR) liste.add(k)
+        }
+        return liste
+    }
 
     private fun tara() {
         planlananZaman = 0L
         val k = katman ?: return
         if (!githubOnde || !acik) { k.temizle(); return }
-        val kok = try { rootInActiveWindow } catch (_: Exception) { null } ?: return
-        if (kok.packageName?.toString() !in Ayarlar.HEDEF_UYGULAMALAR) return
+        val kokler = githubKokleri()
+        sonKokSayisi = kokler.size
+        if (kokler.isEmpty()) return
 
         val ekran = Rect(0, 0, resources.displayMetrics.widthPixels, resources.displayMetrics.heightPixels)
         val ogeler = ArrayList<CeviriKatmani.Oge>()
         val sayac = intArrayOf(0)
-        sonYazi = 0; sonAdaySayisi = 0; ornekYazi = ""
-        dugumuGez(kok, ekran, ogeler, sayac, 0)
+        sonYazi = 0; sonAdaySayisi = 0; ornekYazi = ""; adaylar.clear()
+        for (kok in kokler) dugumuGez(kok, ekran, ogeler, sayac, 0)
         sonDugum = sayac[0]
         sonCevrilen = ogeler.size
         sonTaramaZamani = System.currentTimeMillis()
@@ -147,7 +166,11 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
         }
         if (altindaYaziVar) return true
 
-        val metin = d.text?.toString()?.trim().orEmpty()
+        var metin = d.text?.toString()?.trim().orEmpty()
+        if (metin.isEmpty()) {
+            val aciklama = d.contentDescription?.toString()?.trim().orEmpty()
+            if (aciklama.length >= 8 && aciklama.contains(' ')) metin = aciklama
+        }
         if (metin.isEmpty()) return false
         sonYazi++
         if (d.isEditable) return true // yazı kutularına dokunma
@@ -161,6 +184,7 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
         sonAdaySayisi++
         if (ornekYazi.isEmpty()) ornekYazi = metin.take(40)
         val girdi = if (metin.length > 1500) metin.take(1500) else metin
+        if (adaylar.size < 6) adaylar.add(girdi)
 
         val ceviri = motor.onbellektenAl(girdi, hedef)
         when {
@@ -211,6 +235,8 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
         ana.removeCallbacks(taramaGorevi)
         katman?.let { try { wm.removeView(it) } catch (_: Exception) {} }
         balon?.let { try { wm.removeView(it) } catch (_: Exception) {} }
+        panel?.let { try { wm.removeView(it) } catch (_: Exception) {} }
+        panel = null
         katman = null
         balon = null
     }
@@ -279,17 +305,50 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
         } catch (_: Exception) {}
     }
 
+    private var panel: TextView? = null
+    private var testSonucu = "deneniyor…"
+
     private fun teshisGoster() {
         tara()
-        val ms = if (sonTaramaZamani == 0L) "hiç" else "${(System.currentTimeMillis() - sonTaramaZamani) / 1000} sn önce"
+        testSonucu = "deneniyor…"
+        panelYaz()
+        motor.testEt("这是一个用于测试的句子。", hedef) { s -> testSonucu = s; ana.post { panelYaz() } }
+    }
+
+    private fun panelYaz() {
+        val aktif = try { rootInActiveWindow?.packageName?.toString() } catch (_: Exception) { null }
+        val pencereler = try { windows.mapNotNull { it.root?.packageName?.toString() }.distinct().joinToString() } catch (e: Exception) { "hata" }
         val m = buildString {
-            appendLine("Son tarama: $ms")
+            appendLine("GitHub Çevirmen · teşhis (kapatmak için dokun)")
+            appendLine()
+            appendLine("Aktif pencere: $aktif")
+            appendLine("Pencereler: $pencereler")
+            appendLine("GitHub kökü: $sonKokSayisi · açık: $acik · hedef: $hedef")
             appendLine("Düğüm: $sonDugum · yazı: $sonYazi · aday: $sonAdaySayisi · çizilen: $sonCevrilen")
-            appendLine("Bekleyen çeviri: ${motor.bekleyenSayisi} · indirme: ${motor.indirmeSayisi}")
-            if (ornekYazi.isNotEmpty()) appendLine("Örnek: $ornekYazi")
-            if (motor.sonHata.isNotEmpty()) append("Hata: ${motor.sonHata}")
+            appendLine("Bekleyen: ${motor.bekleyenSayisi} · indirme: ${motor.indirmeSayisi}")
+            if (motor.sonHata.isNotEmpty()) appendLine("Son hata: ${motor.sonHata}")
+            appendLine()
+            appendLine("Test (Çince→$hedef): $testSonucu")
+            appendLine()
+            appendLine("İlk adaylar:")
+            if (adaylar.isEmpty()) appendLine("  (yok)")
+            adaylar.forEach { appendLine("• ${it.take(35).replace('\n', ' ')}\n    ${motor.durum(it, hedef)}") }
         }
-        Toast.makeText(this, m.trim(), Toast.LENGTH_LONG).show()
+        val p = panel ?: TextView(this).also { t ->
+            val d = resources.displayMetrics.density
+            t.setTextColor(Color.WHITE)
+            t.textSize = 12f
+            t.setPadding((14 * d).toInt(), (14 * d).toInt(), (14 * d).toInt(), (14 * d).toInt())
+            t.background = GradientDrawable().apply { cornerRadius = 14 * d; setColor(Color.argb(235, 13, 17, 23)) }
+            t.setOnClickListener { try { wm.removeView(t) } catch (_: Exception) {}; panel = null }
+            val lp = WindowManager.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT,
+            ).apply { gravity = Gravity.TOP; y = (90 * d).toInt(); horizontalMargin = 0.03f }
+            try { wm.addView(t, lp); panel = t } catch (_: Exception) {}
+        }
+        p.text = m.trim()
     }
 
     private fun balonuGuncelle() {
