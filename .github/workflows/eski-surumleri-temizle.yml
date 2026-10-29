@@ -8,7 +8,7 @@ on:
       kalacak:
         description: "Kalacak sürüm etiketi / Release tag to keep"
         required: true
-        default: "v1.0.0"
+        default: "v1.0.1"
 
 permissions:
   contents: write
