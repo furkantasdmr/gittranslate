@@ -19,6 +19,12 @@ android {
         targetSdk = 35
         versionCode = buildNumber
         versionName = "1.1.$buildNumber"
+        // Telefonlar ARM işlemci kullanır; x86 kütüphaneleri APK'yı boşuna büyütür
+        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
+    }
+
+    packaging {
+        jniLibs { useLegacyPackaging = true } // yerel kütüphaneler sıkıştırılsın, APK küçülsün
     }
 
     signingConfigs {
