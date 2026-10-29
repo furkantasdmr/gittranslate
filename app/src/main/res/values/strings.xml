@@ -2,5 +2,5 @@
 <resources>
     <string name="app_name">GitHub Çevirmen</string>
     <string name="service_label">GitHub Çevirmen</string>
-    <string name="service_description">GitHub uygulaması açıkken ekrandaki yabancı dildeki yazıları okur ve seçtiğin dile çevirip üstüne yazar. Çeviri telefonun içinde yapılır, metinler hiçbir sunucuya gönderilmez. Başka uygulamalarda hiçbir şey yapmaz.</string>
+    <string name="service_description">GitHub uygulaması açıkken ekrandaki yabancı dildeki yazıları okur ve seçtiğin dile çevirip üstüne yazar. Çeviri önce telefonun içinde yapılır; dil paketi inemezse yalnızca çevrilecek yazılar Google Çeviri'ye gönderilir. Başka uygulamalarda hiçbir şey yapmaz.</string>
 </resources>

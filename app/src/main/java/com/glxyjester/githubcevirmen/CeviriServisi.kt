@@ -326,6 +326,8 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
             appendLine("GitHub kökü: $sonKokSayisi · açık: $acik · hedef: $hedef")
             appendLine("Düğüm: $sonDugum · yazı: $sonYazi · aday: $sonAdaySayisi · çizilen: $sonCevrilen")
             appendLine("Bekleyen: ${motor.bekleyenSayisi} · indirme: ${motor.indirmeSayisi}")
+            if (motor.paketHatasi.isNotEmpty()) appendLine("Dil paketi: ${motor.paketHatasi} (internet yedeği kullanılıyor)")
+            appendLine("İnternetten çevrilen: ${motor.cevrimiciSayisi}")
             if (motor.sonHata.isNotEmpty()) appendLine("Son hata: ${motor.sonHata}")
             appendLine()
             appendLine("Test (Çince→$hedef): $testSonucu")

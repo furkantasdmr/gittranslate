@@ -3,7 +3,7 @@
 GitHub Android uygulamasında Çince, İngilizce, Japonca ya da başka bir dilde yazı gördüğünde onu **anında Türkçeye** (veya seçtiğin dile) çevirip yazının tam üstüne yazan küçük bir yardımcı uygulama.
 
 - Sadece GitHub uygulaması açıkken çalışır, başka uygulamalarda hiçbir şey yapmaz.
-- Çeviri Google ML Kit ile **telefonun içinde** yapılır; ekrandaki metinler hiçbir sunucuya gönderilmez.
+- Çeviri önce Google ML Kit ile **telefonun içinde** yapılır. Dil paketi inemezse (ör. Google Play Hizmetleri olmayan telefonlarda) yalnızca çevrilecek yazılar Google Çeviri'ye gönderilerek internetten çevrilir.
 - Çevrilen kutuların solunda ince mavi bir şerit olur. Kutulara dokunursan dokunma alttaki GitHub öğesine geçer.
 - Sağ kenardaki mavi balon: dokun → çeviri aç/kapat, basılı tut ve sürükle → yerini değiştir. ⏳ görürsen dil paketi iniyordur.
 

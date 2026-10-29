@@ -172,7 +172,7 @@ class MainActivity : Activity() {
                 indirmeYazisi.text = when {
                     biten < kaynaklar.size -> "İndiriliyor… $biten/${kaynaklar.size}"
                     hata == 0 -> "✅ Hepsi hazır (${Ayarlar.dilAdi(hedef)} için)"
-                    else -> "⚠️ ${kaynaklar.size - hata}/${kaynaklar.size} indi. İnternetini kontrol edip tekrar dene."
+                    else -> "⚠️ ${kaynaklar.size - hata}/${kaynaklar.size} indi. Sorun değil: inmeyen diller internet üzerinden çevrilecek."
                 }
             }
         }
