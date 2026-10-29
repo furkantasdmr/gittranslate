@@ -4,6 +4,7 @@ GitHub Android uygulamasında Çince, İngilizce, Japonca ya da başka bir dilde
 
 - Sadece GitHub uygulaması açıkken çalışır, başka uygulamalarda hiçbir şey yapmaz.
 - Çeviri önce Google ML Kit ile **telefonun içinde** yapılır. Dil paketi inemezse (ör. Google Play Hizmetleri olmayan telefonlarda) yalnızca çevrilecek yazılar Google Çeviri'ye gönderilerek internetten çevrilir.
+- Uygulamanın yazıyı metin olarak vermediği yerlerde (ör. README) ekran görüntüsünden yazıyı **telefonun içinde okur (OCR)**. Android 11 veya üstü gerekir.
 - Çevrilen kutuların solunda ince mavi bir şerit olur. Kutulara dokunursan dokunma alttaki GitHub öğesine geçer.
 - Sağ kenardaki mavi balon: dokun → çeviri aç/kapat, basılı tut ve sürükle → yerini değiştir. ⏳ görürsen dil paketi iniyordur.
 

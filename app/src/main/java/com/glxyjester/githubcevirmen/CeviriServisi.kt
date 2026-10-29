@@ -7,11 +7,14 @@ import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.view.Gravity
 import android.view.MotionEvent
+import android.view.View
+import android.view.accessibility.AccessibilityWindowInfo
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -27,6 +30,17 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
     private val ana = Handler(Looper.getMainLooper())
     private lateinit var wm: WindowManager
     private val motor = CeviriMotoru()
+    private val okuyucu by lazy { EkranOkuyucu(this) }
+
+    // Ekrandan okuma (OCR) durumu
+    private var ocrBloklar: List<EkranOkuyucu.Blok> = emptyList()
+    private var ocrMesgul = false
+    private var ocrKirli = false
+    private var ocrPlan = 0L
+    private var sonOcr = 0L
+    /** Kaydırma/ekran değişince artar; eski görüntüden gelen sonuçlar atılır */
+    private var ocrNesil = 0
+    private val ocrGorevi = Runnable { ocrCalistir() }
 
     private var katman: CeviriKatmani? = null
     private var balon: TextView? = null
@@ -55,7 +69,7 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
         when (olay.eventType) {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
                 // GitHub içinde yeni ekrana geçildi: eski çeviriler yanlış yerde kalmasın
-                if (paket != packageName) katman?.temizle()
+                if (paket != packageName) { katman?.temizle(); ocrSifirla() }
                 ana.removeCallbacks(onDurumGorevi)
                 ana.postDelayed(onDurumGorevi, 150)
             }
@@ -67,11 +81,14 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
                 if (!githubOnde || paket !in Ayarlar.HEDEF_UYGULAMALAR) return
                 // Kayarken eski kutular yanlış yerde kalmasın: gizle, durunca yeniden çiz
                 katman?.temizle()
+                ocrSifirla()
                 taramaPlanla(350)
+                ocrIste(450)
             }
             AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> {
                 if (!githubOnde || paket !in Ayarlar.HEDEF_UYGULAMALAR) return
                 taramaPlanla(450)
+                ocrIste(600)
             }
         }
     }
@@ -86,8 +103,55 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
             githubOnde = onde
             if (onde) pencereleriEkle() else pencereleriKaldir()
         }
-        if (onde) taramaPlanla(200)
+        if (onde) { taramaPlanla(200); ocrIste(400) }
     }
+
+    // ---------------- Ekrandan okuma (OCR) ----------------
+
+    private fun ocrSifirla() {
+        ocrNesil++
+        ocrBloklar = emptyList()
+    }
+
+    /** OCR iste. Daha erken planlanmış biri varsa onu bozmaz; iki OCR arası en az 900 ms. */
+    private fun ocrIste(gecikme: Long) {
+        if (!okuyucu.destekleniyor) return
+        ocrKirli = true
+        val zaman = maxOf(SystemClock.uptimeMillis() + gecikme, sonOcr + 900)
+        if (ocrPlan != 0L && ocrPlan <= zaman) return
+        ana.removeCallbacks(ocrGorevi)
+        ocrPlan = zaman
+        ana.postAtTime(ocrGorevi, zaman)
+    }
+
+    private fun ocrCalistir() {
+        ocrPlan = 0L
+        if (!githubOnde || !acik || katman == null) return
+        if (ocrMesgul) return // bitince kirliyse tekrar çalışır
+        ocrKirli = false
+        ocrMesgul = true
+        sonOcr = SystemClock.uptimeMillis()
+        val nesil = ocrNesil
+        okuyucu.oku(githubPenceresi(), gizle = { g ->
+            katman?.visibility = if (g) View.INVISIBLE else View.VISIBLE
+        }) { bloklar ->
+            ocrMesgul = false
+            if (nesil != ocrNesil) {
+                ocrKirli = true // arada kaydırıldı, bu görüntü eski
+            } else if (bloklar != null) {
+                ocrBloklar = bloklar
+                taramaPlanla(0)
+            }
+            if (ocrKirli) ocrIste(300)
+        }
+    }
+
+    private fun githubPenceresi(): AccessibilityWindowInfo? = try {
+        windows.firstOrNull { w ->
+            w.type == AccessibilityWindowInfo.TYPE_APPLICATION &&
+                w.root?.packageName?.toString() in Ayarlar.HEDEF_UYGULAMALAR
+        }
+    } catch (_: Exception) { null }
 
     /** Zaten daha erken bir tarama planlıysa onu bozma; böylece sürekli güncellenen ekranda tarama hiç gecikmez. */
     private var planlananZaman = 0L
@@ -111,6 +175,20 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
     private var ornekYazi = ""
     private var sonKokSayisi = 0
     private val adaylar = ArrayList<String>()
+    private val agacAlanlari = ArrayList<Rect>()
+    private var sonOcrAday = 0
+
+    private fun adayEkle(metin: String, alan: Rect, ogeler: MutableList<CeviriKatmani.Oge>) {
+        sonAdaySayisi++
+        if (ornekYazi.isEmpty()) ornekYazi = metin.take(40)
+        val girdi = if (metin.length > 1500) metin.take(1500) else metin
+        if (adaylar.size < 6) adaylar.add(girdi)
+        val ceviri = motor.onbellektenAl(girdi, hedef)
+        when {
+            ceviri == null -> motor.cevir(girdi, hedef) { ana.post { taramaPlanla(120) } }
+            ceviri.isNotEmpty() -> ogeler.add(CeviriKatmani.Oge(alan, ceviri))
+        }
+    }
 
     /** GitHub'a ait tüm pencerelerin kökleri; olmazsa aktif pencere. */
     private fun githubKokleri(): List<AccessibilityNodeInfo> {
@@ -134,13 +212,22 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
         if (!githubOnde || !acik) { k.temizle(); return }
         val kokler = githubKokleri()
         sonKokSayisi = kokler.size
-        if (kokler.isEmpty()) return
+        if (kokler.isEmpty() && ocrBloklar.isEmpty()) return
 
         val ekran = Rect(0, 0, resources.displayMetrics.widthPixels, resources.displayMetrics.heightPixels)
         val ogeler = ArrayList<CeviriKatmani.Oge>()
         val sayac = intArrayOf(0)
-        sonYazi = 0; sonAdaySayisi = 0; ornekYazi = ""; adaylar.clear()
+        sonYazi = 0; sonAdaySayisi = 0; ornekYazi = ""; adaylar.clear(); agacAlanlari.clear()
         for (kok in kokler) dugumuGez(kok, ekran, ogeler, sayac, 0)
+
+        // Ekrandan okunan yazılar: ağaçta zaten olan yerleri tekrar çevirme
+        sonOcrAday = 0
+        for (b in ocrBloklar) {
+            if (agacAlanlari.any { Rect.intersects(it, b.alan) }) continue
+            if (!cevrilmeliMi(b.metin)) continue
+            sonOcrAday++
+            adayEkle(b.metin, b.alan, ogeler)
+        }
         sonDugum = sayac[0]
         sonCevrilen = ogeler.size
         sonTaramaZamani = System.currentTimeMillis()
@@ -179,18 +266,10 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
         val alan = Rect()
         d.getBoundsInScreen(alan)
         if (alan.isEmpty || !alan.intersect(ekran)) return true
+        agacAlanlari.add(Rect(alan))
 
         if (!cevrilmeliMi(metin)) return true
-        sonAdaySayisi++
-        if (ornekYazi.isEmpty()) ornekYazi = metin.take(40)
-        val girdi = if (metin.length > 1500) metin.take(1500) else metin
-        if (adaylar.size < 6) adaylar.add(girdi)
-
-        val ceviri = motor.onbellektenAl(girdi, hedef)
-        when {
-            ceviri == null -> motor.cevir(girdi, hedef) { ana.post { taramaPlanla(120) } }
-            ceviri.isNotEmpty() -> ogeler.add(CeviriKatmani.Oge(alan, ceviri))
-        }
+        adayEkle(metin, alan, ogeler)
         return true
     }
 
@@ -233,6 +312,9 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
 
     private fun pencereleriKaldir() {
         ana.removeCallbacks(taramaGorevi)
+        ana.removeCallbacks(ocrGorevi)
+        ocrPlan = 0L
+        ocrSifirla()
         katman?.let { try { wm.removeView(it) } catch (_: Exception) {} }
         balon?.let { try { wm.removeView(it) } catch (_: Exception) {} }
         panel?.let { try { wm.removeView(it) } catch (_: Exception) {} }
@@ -310,6 +392,7 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
 
     private fun teshisGoster() {
         tara()
+        ocrIste(0)
         testSonucu = "deneniyor…"
         panelYaz()
         motor.testEt("这是一个用于测试的句子。", hedef) { s -> testSonucu = s; ana.post { panelYaz() } }
@@ -323,8 +406,11 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
             appendLine()
             appendLine("Aktif pencere: $aktif")
             appendLine("Pencereler: $pencereler")
-            appendLine("GitHub kökü: $sonKokSayisi · açık: $acik · hedef: $hedef")
+            if (!acik) appendLine("⚠️ Çeviri KAPALI (balonda Aa). Açmak için balona bir kez dokun.")
+            appendLine("Android API: ${Build.VERSION.SDK_INT} · GitHub kökü: $sonKokSayisi · hedef: $hedef")
             appendLine("Düğüm: $sonDugum · yazı: $sonYazi · aday: $sonAdaySayisi · çizilen: $sonCevrilen")
+            appendLine("Ekrandan okuma: ${okuyucu.calismaSayisi} kez · blok: ${okuyucu.sonBlokSayisi} · aday: $sonOcrAday · ${okuyucu.sonSure} ms")
+            if (okuyucu.sonHata.isNotEmpty()) appendLine("Okuma hatası: ${okuyucu.sonHata}")
             appendLine("Bekleyen: ${motor.bekleyenSayisi} · indirme: ${motor.indirmeSayisi}")
             if (motor.paketHatasi.isNotEmpty()) appendLine("Dil paketi: ${motor.paketHatasi} (internet yedeği kullanılıyor)")
             appendLine("İnternetten çevrilen: ${motor.cevrimiciSayisi}")
@@ -377,7 +463,7 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
             Ayarlar.ACIK -> {
                 acik = Ayarlar.acikMi(this)
                 balonuGuncelle()
-                if (acik) taramaPlanla(50) else katman?.temizle()
+                if (acik) { taramaPlanla(50); ocrIste(100) } else katman?.temizle()
             }
             Ayarlar.HEDEF_DIL -> {
                 hedef = Ayarlar.hedefDil(this)
@@ -397,6 +483,7 @@ class CeviriServisi : AccessibilityService(), SharedPreferences.OnSharedPreferen
         ana.removeCallbacksAndMessages(null)
         pencereleriKaldir()
         motor.kapat()
+        okuyucu.kapat()
         super.onDestroy()
     }
 }
