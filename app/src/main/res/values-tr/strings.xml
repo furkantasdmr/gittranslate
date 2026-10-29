@@ -118,7 +118,7 @@
     <string name="main_bubble_btn">Balonu aç (Erişilebilirlik ayarları)</string>
     <string name="main_bubble_on">✅ Balon açık</string>
     <string name="main_bubble_off">⚪ Balon kapalı — Erişilebilirlik → İndirilen uygulamalar altında GitTranslate\'i aç.</string>
-    <string name="main_restricted">Gri görünüyor ya da \"Kısıtlı ayar\" diyorsa: aşağıdan Uygulama bilgisini aç, sağ üstteki ⋮ → \"Kısıtlanmış ayarlara izin ver\", sonra tekrar dene.</string>
+    <string name="main_restricted">Uygulama bilgisinde \"Uygulama kısıtlandı\" yazıyorsa ya da balon gri/kısıtlı görünüyorsa: aşağıdan Uygulama bilgisini aç, \"Kısıtlama kaldırılsın mı?\" → Kaldır de (bazı telefonlarda sağ üst ⋮ → \"Kısıtlanmış ayarlara izin ver\"). Play Store dışından kurulan ve erişilebilirlik kullanan her uygulamada Android bunu sorar.</string>
     <string name="main_app_info">Uygulama bilgisini aç</string>
     <string name="method_screen_text">ekran yazısı</string>
     <string name="method_screenshot">ekran görüntüsü</string>

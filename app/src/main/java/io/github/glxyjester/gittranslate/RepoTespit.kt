@@ -82,6 +82,39 @@ object RepoTespit {
         return null
     }
 
+    /**
+     * Yanlış/kesik okunmuş adı ("…of-Chin", "Administrative-divisions-of-Chlna") sahibin
+     * gerçek repo adlarıyla eşleştirir: önce tam, sonra baş/son eşleşmesi, sonra küçük yazım farkı.
+     */
+    fun enYakin(okunan: String, adlar: List<String>): String? {
+        val o = okunan.lowercase().trim().trim('.', '…')
+        if (o.isEmpty() || adlar.isEmpty()) return null
+        adlar.firstOrNull { it.equals(o, ignoreCase = true) }?.let { return it }
+        val kucuk = adlar.map { it to it.lowercase() }
+        if (o.length >= 3) {
+            kucuk.filter { (_, a) -> a.startsWith(o) || a.endsWith(o) }.minByOrNull { it.first.length }?.let { return it.first }
+            kucuk.filter { (_, a) -> a.contains(o) }.minByOrNull { it.first.length }?.let { return it.first }
+        }
+        val sinir = maxOf(2, o.length / 6)
+        return kucuk.map { (gercek, a) -> gercek to duzenlemeMesafesi(o, a) }
+            .filter { it.second <= sinir }
+            .minByOrNull { it.second }?.first
+    }
+
+    private fun duzenlemeMesafesi(a: String, b: String): Int {
+        if (kotlin.math.abs(a.length - b.length) > 8) return Int.MAX_VALUE
+        var onceki = IntArray(b.length + 1) { it }
+        for (i in 1..a.length) {
+            val su = IntArray(b.length + 1)
+            su[0] = i
+            for (j in 1..b.length) {
+                su[j] = minOf(onceki[j] + 1, su[j - 1] + 1, onceki[j - 1] + if (a[i - 1] == b[j - 1]) 0 else 1)
+            }
+            onceki = su
+        }
+        return onceki[b.length]
+    }
+
     /** Kesik görünen adı sahibin repo adlarından tamamlar. Bulamazsa null. */
     fun kesikAdiEslestir(parca: String, kesik: TespitSonucu.Kesik, adlar: List<String>): String? {
         val p = parca.lowercase()

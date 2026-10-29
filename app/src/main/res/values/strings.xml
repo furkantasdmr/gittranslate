@@ -118,7 +118,7 @@
     <string name="main_bubble_btn">Turn on the bubble (Accessibility settings)</string>
     <string name="main_bubble_on">✅ Bubble is on</string>
     <string name="main_bubble_off">⚪ Bubble is off — under Accessibility → Downloaded apps, turn on GitTranslate.</string>
-    <string name="main_restricted">If it\'s greyed out or says \"Restricted setting\": open App info below, tap ⋮ at the top right → \"Allow restricted settings\", then try again.</string>
+    <string name="main_restricted">If App info says \"App restricted\" or the bubble is greyed out: open App info below and confirm \"Remove restriction\" (on some phones: ⋮ at the top right → \"Allow restricted settings\"). Android asks this for every app installed outside the Play Store that uses accessibility.</string>
     <string name="main_app_info">Open App info</string>
     <string name="method_screen_text">screen text</string>
     <string name="method_screenshot">screenshot</string>

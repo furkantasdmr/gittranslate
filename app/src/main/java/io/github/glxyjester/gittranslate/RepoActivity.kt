@@ -180,12 +180,26 @@ class RepoActivity : Activity() {
             else -> n.getStringExtra(Intent.EXTRA_TEXT)
         }
         when (val s = RepoAnaliz.baglantiAyikla(metin)) {
-            is RepoAnaliz.BaglantiSonucu.Repo -> { sahip = s.sahip; ad = s.ad; yukle() }
+            is RepoAnaliz.BaglantiSonucu.Repo -> { sahip = s.sahip; ad = s.ad; duzeltmeDenendi = false; yukle() }
             is RepoAnaliz.BaglantiSonucu.KisiSayfasi -> {
                 baslikYazisi.text = s.sahip
                 mesajGoster(getString(R.string.err_user_page, s.sahip), tekrar = false)
             }
             RepoAnaliz.BaglantiSonucu.Yok -> mesajGoster(getString(R.string.err_no_repo), tekrar = false)
+        }
+    }
+
+    /** Ad yanlış okunduysa bir kez sahibin repo listesinden düzeltmeyi dene */
+    private var duzeltmeDenendi = false
+
+    private fun bulunamadi() {
+        if (duzeltmeDenendi) { mesajGoster(getString(R.string.err_not_found), tekrar = true); return }
+        duzeltmeDenendi = true
+        GitHubApi.repoAdlari(sahip) { adlar ->
+            if (isFinishing || isDestroyed) return@repoAdlari
+            val dogru = RepoTespit.enYakin(ad, adlar)
+            if (dogru != null && dogru != ad) { ad = dogru; yukle() }
+            else mesajGoster(getString(R.string.err_not_found), tekrar = true)
         }
     }
 
@@ -203,7 +217,7 @@ class RepoActivity : Activity() {
             if (isFinishing || isDestroyed) return@getir
             when {
                 b != null -> { bilgi = b; sayfaYenile(b) }
-                h is ApiHatasi.Bulunamadi -> mesajGoster(getString(R.string.err_not_found), tekrar = true)
+                h is ApiHatasi.Bulunamadi -> bulunamadi()
                 h is ApiHatasi.Sinir -> mesajGoster(getString(R.string.err_limit, h.dakika), tekrar = true)
                 h is ApiHatasi.Ag -> mesajGoster(getString(R.string.err_network, h.mesaj), tekrar = true)
             }

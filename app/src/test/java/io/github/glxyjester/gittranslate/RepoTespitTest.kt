@@ -40,6 +40,16 @@ class RepoTespitTest {
     }
 
     @Test
+    fun enYakin() {
+        val adlar = listOf("china-division", "Administrative-divisions-of-China", "go-chinese")
+        // Kullanıcının ekran görüntüsündeki durum: sonu kesik okunmuş
+        assertEquals("Administrative-divisions-of-China", RepoTespit.enYakin("Administrative-divisions-of-Chin", adlar))
+        assertEquals("Administrative-divisions-of-China", RepoTespit.enYakin("administrative-divisions-of-chlna", adlar))
+        assertEquals("go-chinese", RepoTespit.enYakin("go-chinese", adlar))
+        assertNull(RepoTespit.enYakin("tamamen-baska", adlar))
+    }
+
+    @Test
     fun kesikEslestirme() {
         val adlar = listOf("china-division", "Administrative-divisions-of-China", "go-chinese")
         assertEquals("Administrative-divisions-of-China",
