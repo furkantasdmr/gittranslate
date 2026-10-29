@@ -558,8 +558,39 @@ class BalonServisi : AccessibilityService() {
         resim?.colorFilter = if (hazir) null else griFiltre
         v.alpha = if (r != null) 1f else 0.6f
         halka?.let { hl ->
-            hl.visibility = if (hazirlaniyor) View.VISIBLE else View.GONE
+            if (!hl.parliyor) hl.visibility = if (hazirlaniyor) View.VISIBLE else View.GONE
             if (hazirlaniyor) hl.ilerleme = h!!.ilerleme
+        }
+
+        // Hazırlanırken izlenen repo şimdi hazır oldu: kutla (aynı repo için bir kez)
+        val anahtar = if (hazir) "${h!!.sahip}/${h.ad}|${h.hedef}" else ""
+        if (hazir && anahtar != sonKutlanan && oncekiHazirlaniyor) hazirAnimasyonu()
+        if (hazir) sonKutlanan = anahtar
+        oncekiHazirlaniyor = hazirlaniyor
+    }
+
+    private var sonKutlanan = ""
+    private var oncekiHazirlaniyor = false
+
+    /** Halka yeşile döner ve söner, balon küçük bir zıplama yapar, telefon hafifçe titrer. */
+    private fun hazirAnimasyonu() {
+        val v = balon ?: return
+        halka?.parla()
+        v.performHapticFeedback(
+            if (Build.VERSION.SDK_INT >= 30) HapticFeedbackConstants.CONFIRM else HapticFeedbackConstants.VIRTUAL_KEY,
+        )
+        v.animate().cancel()
+        v.animate().scaleX(1.22f).scaleY(1.22f).setDuration(150)
+            .setInterpolator(DecelerateInterpolator())
+            .withEndAction {
+                v.animate().scaleX(1f).scaleY(1f).setDuration(380)
+                    .setInterpolator(android.view.animation.OvershootInterpolator(3.2f)).start()
+            }.start()
+        // İkon bir tur döner
+        resim?.let { res ->
+            res.rotation = 0f
+            res.animate().rotationBy(360f).setDuration(520)
+                .setInterpolator(android.view.animation.AccelerateDecelerateInterpolator()).start()
         }
     }
 
@@ -581,6 +612,28 @@ class BalonServisi : AccessibilityService() {
             style = Paint.Style.STROKE; strokeWidth = 3.5f * d; color = Color.rgb(232, 50, 31); strokeCap = Paint.Cap.ROUND
         }
         private val kutu = RectF()
+        private val yesil = Color.rgb(45, 164, 78)
+        private val kirmizi = Color.rgb(232, 50, 31)
+
+        /** Hazır olunca halka yeşile döner ve söner */
+        var parliyor = false
+            private set
+
+        fun parla() {
+            parliyor = true
+            visibility = VISIBLE
+            gosterilen = 1f
+            dolu.color = yesil
+            alpha = 1f
+            invalidate()
+            animate().alpha(0f).setStartDelay(250).setDuration(550).withEndAction {
+                parliyor = false
+                visibility = GONE
+                alpha = 1f
+                dolu.color = kirmizi
+                gosterilen = 0f
+            }.start()
+        }
 
         var ilerleme = 0f
             set(v) {
