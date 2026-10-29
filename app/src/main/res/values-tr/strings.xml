@@ -124,4 +124,11 @@
     <string name="method_screenshot">ekran görüntüsü</string>
     <string name="limited_note">GitHub\'ın saatlik sınırı doldu, bu yüzden sadece README gösteriliyor. Ayrıntılar biraz sonra gelir.</string>
     <string name="main_battery_btn">Arka planda çalışmasına izin ver (önerilir)</string>
+    <string name="sec_about">Hakkında</string>
+    <string name="sec_release">Son sürüm</string>
+    <string name="release_notes">Sürüm notları</string>
+    <string name="all_releases">Tüm sürümler →</string>
+    <string name="bubble_ready">Çevrildi, hazır — dokun ve oku.</string>
+    <string name="bubble_preparing">Arka planda çevriliyor… %%%d</string>
+    <string name="bubble_prep_failed">Arka planda hazırlanamadı; dokunarak dene.</string>
 </resources>

@@ -38,7 +38,20 @@ object CeviriMotoru {
     private val basarisiz = HashMap<String, Long>()
 
     /** "hedef|metin" -> çeviri ("" = çevirmeye gerek yok) */
-    private val onbellek = LruCache<String, String>(4000)
+    private val onbellek = LruCache<String, String>(12000)
+
+    /** Aynı metin için süren çeviri varsa ikinci istek atılmaz, sonucu beklenir */
+    private val suren = HashMap<String, MutableList<(String?) -> Unit>>()
+
+    /**
+     * Önbellekteki çeviri: null = henüz çevrilmedi, "" = çevirmeye gerek yok, diğer = çeviri.
+     * Panelin anında (beklemeden) açılması için.
+     */
+    fun onbellekte(metin: String, hedef: String): String? {
+        val m = metin.trim()
+        if (m.isEmpty() || m.none { it.isLetter() }) return ""
+        return onbellek.get("$hedef|$m")
+    }
 
     /**
      * @param sonuc çeviri; metin zaten hedef dildeyse ya da çevrilemezse null
@@ -48,6 +61,12 @@ object CeviriMotoru {
         if (m.isEmpty() || m.none { it.isLetter() }) { sonuc(null); return }
         val anahtar = "$hedef|$m"
         onbellek.get(anahtar)?.let { sonuc(it.ifEmpty { null }); return }
+        suren[anahtar]?.let { it.add(sonuc); return }
+        suren[anahtar] = mutableListOf(sonuc)
+        cevirAsil(m, hedef, anahtar) { c -> suren.remove(anahtar)?.forEach { it(c) } }
+    }
+
+    private fun cevirAsil(m: String, hedef: String, anahtar: String, sonuc: (String?) -> Unit) {
 
         if (internetOnce) {
             // Daha iyi çeviri için önce Google Çeviri; olmazsa telefonun içindeki çevirmen

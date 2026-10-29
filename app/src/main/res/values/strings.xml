@@ -124,4 +124,11 @@
     <string name="method_screenshot">screenshot</string>
     <string name="limited_note">GitHub\'s hourly limit is used up, so only the README is shown. Details come back later.</string>
     <string name="main_battery_btn">Allow running in background (recommended)</string>
+    <string name="sec_about">About</string>
+    <string name="sec_release">Latest release</string>
+    <string name="release_notes">Release notes</string>
+    <string name="all_releases">All releases →</string>
+    <string name="bubble_ready">Translated and ready — tap to read.</string>
+    <string name="bubble_preparing">Translating in the background… %d%%</string>
+    <string name="bubble_prep_failed">Couldn\'t prepare in the background; tap to try.</string>
 </resources>

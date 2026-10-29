@@ -243,12 +243,22 @@ class RepoActivity : Activity() {
         icerik.removeAllViews()
 
         val ust = ui.kart(ust = 14)
+        ust.addView(ui.kartBasligi("ℹ️ " + getString(R.string.sec_about)))
         b.aciklama?.takeIf { it.isNotBlank() }?.let { ust.addView(cevrilen(it, 15.5f, kalin = true)) }
+            ?: ust.addView(ui.yaziGorunumu(getString(R.string.no_description), 14f, renk = ui.sonuk))
         val bilgiler = ArrayList<String>()
         bilgiler += "★ " + yildizYaz(b.yildiz)
         b.anaDil?.let { bilgiler += it }
         b.guncellenme?.let { bilgiler += getString(R.string.updated, onceYaz(it)) }
         ust.addView(ui.yaziGorunumu(bilgiler.joinToString("  ·  "), 13f, renk = ui.sonuk, ust = 6))
+        if (b.konular.isNotEmpty()) {
+            ust.addView(ui.yaziGorunumu("🏷️ " + b.konular.take(8).joinToString("  ·  "), 13f, renk = ui.vurgu, ust = 6))
+        }
+        b.anaSayfa?.let { adres ->
+            ust.addView(ui.baglantiYazisi("🌐 " + adres.removePrefix("https://").removePrefix("http://")) {
+                ui.ac(if (adres.startsWith("http")) adres else "https://$adres")
+            })
+        }
         if (b.arsiv) ust.addView(ui.yaziGorunumu(getString(R.string.archived), 14f, renk = ui.uyari, ust = 8))
         if (b.sinirli) ust.addView(ui.yaziGorunumu(getString(R.string.limited_note), 13f, renk = ui.uyari, ust = 6))
         icerik.addView(ust)
@@ -275,6 +285,8 @@ class RepoActivity : Activity() {
             }
         }
         icerik.addView(k)
+
+        b.surum?.let { surumKarti(it, b) }
 
         icerik.addView(ui.dugme(getString(R.string.btn_more_info), ana = false, ust = 14) {
             readmeModu = false
@@ -419,6 +431,33 @@ class RepoActivity : Activity() {
         val k = ui.kart()
         k.addView(ui.kartBasligi(getString(R.string.sec_downloads)))
         k.addView(ui.yaziGorunumu(getString(R.string.latest_release, s.ad), 13f, renk = ui.sonuk))
+        indirmeDugmeleri(k, s)
+        icerik.addView(k)
+    }
+
+    /** Son sürüm: adı, tarihi, çevrilmiş notları ve indirme düğmeleri */
+    private fun surumKarti(s: Surum, b: RepoBilgisi) {
+        val k = ui.kart()
+        k.addView(ui.kartBasligi("🚀 " + getString(R.string.sec_release)))
+        val alt = listOfNotNull(s.ad.ifBlank { s.etiket }, s.tarih?.let { onceYaz(it) }).joinToString("  ·  ")
+        k.addView(ui.yaziGorunumu(alt, 14f, kalin = true, renk = ui.sonuk))
+        val notlar = s.notlar.takeIf { it.isNotBlank() }?.let { Markdown.ayristir(it, null) }
+        if (notlar != null && notlar.bolumler.isNotEmpty()) {
+            val hepsi = notlar.bolumler.flatMap { bol ->
+                (if (bol.tur != BolumTuru.GIRIS) listOf<Parca>(Parca.Baslik(4, bol.baslik)) else emptyList()) + bol.parcalar
+            }
+            val uzun = notlar.bolumler.sumOf { boyut(it) } > 1500
+            if (uzun) katlanir(k, getString(R.string.release_notes), false, baslikCevir = false) { g -> parcalariCiz(g, hepsi, b) }
+            else parcalariCiz(k, hepsi, b)
+        }
+        indirmeDugmeleri(k, s)
+        k.addView(ui.baglantiYazisi(getString(R.string.all_releases), ust = 8) {
+            ui.ac("https://github.com/${b.sahip}/${b.ad}/releases")
+        })
+        icerik.addView(k)
+    }
+
+    private fun indirmeDugmeleri(k: LinearLayout, s: Surum) {
         fun oncelik(ad: String): Int {
             val a = ad.lowercase()
             return when {
@@ -435,7 +474,6 @@ class RepoActivity : Activity() {
             k.addView(ui.dugme("$ikon  ${d.ad}$mb", ana = oncelik(d.ad) == 0, ust = 8) { ui.ac(d.adres) })
         }
         if (s.dosyalar.size > 6) k.addView(ui.baglantiYazisi("+${s.dosyalar.size - 6} …") { ui.ac(s.adres) })
-        icerik.addView(k)
     }
 
     // ---------------- README bölümleri ----------------
@@ -738,6 +776,9 @@ class RepoActivity : Activity() {
     private inner class CeviriKuyrugu {
         private inner class Is(val gorunum: TextView, val orijinal: String) { var ceviri: String? = null }
 
+        /** Ekrandaki bütün yazılar (orijinal/çeviri düğmesi için) */
+        private val tumu = ArrayList<Is>()
+        /** Henüz çevrilmemiş olanlar, sırayla */
         private val isler = ArrayList<Is>()
         private var sira = 0
         private var calisan = 0
@@ -746,8 +787,16 @@ class RepoActivity : Activity() {
 
         fun ekle(t: TextView, m: String) {
             val i = Is(t, m)
+            tumu.add(i)
+            // Arka planda hazırlandıysa beklemeden göster
+            val hazir = CeviriMotoru.onbellekte(m, calistigiHedef)
+            if (hazir != null) {
+                i.ceviri = hazir.ifEmpty { null }
+                if (i.ceviri != null && !orijinalGoster) t.text = i.ceviri
+                return
+            }
             if (ekNoktasi >= 0) isler.add(ekNoktasi++, i) else isler.add(i)
-            if (m.any { it.isLetter() }) t.alpha = 0.55f
+            t.alpha = 0.55f
             calistir()
         }
 
@@ -775,7 +824,7 @@ class RepoActivity : Activity() {
         }
 
         fun hepsiniGoster(orijinal: Boolean) {
-            isler.forEach { it.gorunum.text = if (orijinal || it.ceviri == null) it.orijinal else it.ceviri }
+            tumu.forEach { it.gorunum.text = if (orijinal || it.ceviri == null) it.orijinal else it.ceviri }
         }
     }
 

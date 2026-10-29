@@ -31,6 +31,15 @@ class RepoTespitTest {
     }
 
     @Test
+    fun listedeKesinDegil() {
+        val yazilar = listOf(
+            EkranYazisi("torvalds/linux", 40, 400, 600, 440),
+            EkranYazisi("yt-dlp/yt-dlp", 40, 700, 600, 740),
+        )
+        assertEquals(TespitSonucu("torvalds", "linux", kesin = false), RepoTespit.bul(yazilar, h, dp))
+    }
+
+    @Test
     fun arayuzYazilariSahipSayilmaz() {
         val yazilar = listOf(
             EkranYazisi("Home", 40, 120, 200, 160),

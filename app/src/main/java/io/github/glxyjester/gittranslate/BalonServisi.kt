@@ -4,13 +4,18 @@ import android.accessibilityservice.AccessibilityService
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.annotation.TargetApi
+import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
+import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.graphics.Rect
+import android.graphics.RectF
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -26,6 +31,7 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
 import android.view.animation.DecelerateInterpolator
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.Toast
 import com.google.mlkit.vision.common.InputImage
@@ -36,11 +42,12 @@ import kotlin.math.abs
 import kotlin.math.hypot
 
 /**
- * GitHub uygulaması açıkken ekran kenarında bir balon gösterir. Balona dokununca o an açık olan
- * reponun README'si, kullanıcının dilinde bir panelde açılır ([RepoActivity]).
+ * GitHub uygulaması açıkken ekran kenarında bir balon gösterir.
  *
- * Hangi repoda olunduğu önce ekrandaki yazılardan (erişilebilirlik ağacı), olmazsa dokunulduğu anda
- * ekranın üst kısmının görüntüsünden (OCR) bulunur.
+ *  - Bir repo sayfası açılınca repo adı ekrandan bulunur ve [OnHazirlik] arka planda README'yi,
+ *    açıklamayı ve son sürüm notlarını indirip çevirir. Bu sırada balon gri kalır, çevresinde
+ *    ilerleme halkası dolar; her şey çevrilince balon renklenir.
+ *  - Balona dokununca [RepoActivity] çevrilmiş hâliyle anında açılır.
  *
  * Kararlılık: her geri çağırma hata korumalı (bazı telefonlar çöken erişilebilirlik servisini
  * tamamen kapatıyor), aynı anda tek arama, zaman aşımları, klavye açıkken gizlenme.
@@ -51,11 +58,15 @@ class BalonServisi : AccessibilityService() {
         const val GITHUB = "com.github.android"
         private const val ETIKET = "GitTranslate"
         private const val TERCIH = "balon"
+        /** Repo ekranda bu kadar süre kalınca arka planda hazırlık başlar (listede kaydırırken değil) */
+        private const val BEKLEME = 600L
     }
 
     private val ana = Handler(Looper.getMainLooper())
     private var wm: WindowManager? = null
-    private var balon: ImageView? = null
+    private var balon: FrameLayout? = null
+    private var resim: ImageView? = null
+    private var halka: Halka? = null
     private var params: WindowManager.LayoutParams? = null
     private var githubOnde = false
     private var klavyeAcik = false
@@ -63,6 +74,13 @@ class BalonServisi : AccessibilityService() {
     private var sonRepo: TespitSonucu? = null
     private var sonYontem = ""
     private var sonYaziSayisi = 0
+
+    /** Aynı repo bir süre ekranda kaldı mı */
+    private var aday: TespitSonucu? = null
+    private var adayZamani = 0L
+    private var bosZamani = 0L
+    private var sonArkaOkuma = 0L
+    private var arkaOkumaSuruyor = false
 
     /** Dokunma sonrası arama sürüyor mu (çift dokunuşu engeller) */
     private var mesgul = false
@@ -85,6 +103,7 @@ class BalonServisi : AccessibilityService() {
         guvenli {
             wm = getSystemService(WINDOW_SERVICE) as WindowManager
             GitHubApi.baslat(this)
+            OnHazirlik.dinleyici = { guvenli { balonuGuncelle() } }
             onDurumu()
         }
     }
@@ -101,7 +120,7 @@ class BalonServisi : AccessibilityService() {
                 ana.postDelayed(onDurumGorevi, 120)
             }
             AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED, AccessibilityEvent.TYPE_VIEW_SCROLLED -> {
-                if (githubOnde && olay.packageName?.toString() == GITHUB) taramaPlanla(500)
+                if (githubOnde && olay.packageName?.toString() == GITHUB) taramaPlanla(450)
             }
         }
     }
@@ -121,6 +140,7 @@ class BalonServisi : AccessibilityService() {
 
     override fun onDestroy() {
         guvenli {
+            OnHazirlik.dinleyici = null
             ana.removeCallbacksAndMessages(null)
             balonuKaldir()
             yurutucu.shutdownNow()
@@ -133,6 +153,11 @@ class BalonServisi : AccessibilityService() {
     private fun aktifPaket(): String? = try { rootInActiveWindow?.packageName?.toString() } catch (_: Exception) { null }
 
     private fun pencereler(): List<AccessibilityWindowInfo> = try { windows ?: emptyList() } catch (_: Exception) { emptyList() }
+
+    private fun githubPenceresi(): AccessibilityWindowInfo? = pencereler().firstOrNull { w ->
+        w.type == AccessibilityWindowInfo.TYPE_APPLICATION &&
+            (try { w.root?.packageName?.toString() } catch (_: Exception) { null }) == GITHUB
+    }
 
     private fun githubKokleri(): List<AccessibilityNodeInfo> {
         val liste = ArrayList<AccessibilityNodeInfo>()
@@ -182,10 +207,31 @@ class BalonServisi : AccessibilityService() {
         sonYaziSayisi = yazilar.size
         val dm = resources.displayMetrics
         val t = RepoTespit.bul(yazilar, dm.heightPixels, dm.density)
-        sonRepo = t
-        sonYontem = if (t != null) getString(R.string.method_screen_text) else ""
-        balonuGuncelle()
+        tespitIsle(t, getString(R.string.method_screen_text))
+        if (t == null) arkaPlandaOku()
         return t
+    }
+
+    /** Bulunan repoyu kaydet; aynı repo bir süre ekranda kalırsa arka planda hazırlığa başla. */
+    private fun tespitIsle(t: TespitSonucu?, yontem: String) {
+        val simdi = SystemClock.uptimeMillis()
+        if (t == null) {
+            if (bosZamani == 0L) bosZamani = simdi
+            // Kısa süreli boşlukları (kaydırma, animasyon) yok say; uzun sürerse balon griye döner
+            if (simdi - bosZamani > 1500) { sonRepo = null; aday = null }
+            balonuGuncelle()
+            return
+        }
+        bosZamani = 0L
+        sonRepo = t
+        sonYontem = yontem
+        if (t.kesin) {
+            val ayni = aday?.let { it.sahip.equals(t.sahip, true) && it.ad.equals(t.ad, true) } == true
+            if (!ayni) { aday = t; adayZamani = simdi; taramaPlanla(BEKLEME + 50) }
+            else if (simdi - adayZamani >= BEKLEME) OnHazirlik.baslat(this, t)
+            else taramaPlanla(BEKLEME - (simdi - adayZamani) + 50)
+        }
+        balonuGuncelle()
     }
 
     private fun topla(d: AccessibilityNodeInfo, liste: MutableList<EkranYazisi>, derinlik: Int) {
@@ -203,58 +249,91 @@ class BalonServisi : AccessibilityService() {
 
     // ---------------- Repo bulma: ekran görüntüsü (OCR) ----------------
 
-    /** Sonuç her durumda en fazla 5 sn içinde bir kez döner. */
+    /**
+     * Ekran yazısında repo yoksa, Android 14+ telefonlarda sadece GitHub penceresinin görüntüsünü
+     * alıp (balon görüntüye girmez, titreme olmaz) arka planda okur. En fazla 3 sn'de bir.
+     */
+    private fun arkaPlandaOku() {
+        if (Build.VERSION.SDK_INT < 34 || arkaOkumaSuruyor || mesgul) return
+        val simdi = SystemClock.uptimeMillis()
+        if (simdi - sonArkaOkuma < 3000) return
+        val w = githubPenceresi() ?: return
+        sonArkaOkuma = simdi
+        arkaOkumaSuruyor = true
+        var bitti = false
+        val tek: (TespitSonucu?) -> Unit = { t ->
+            if (!bitti) {
+                bitti = true; arkaOkumaSuruyor = false
+                if (t != null && githubOnde) tespitIsle(t, getString(R.string.method_screenshot))
+            }
+        }
+        ana.postDelayed({ tek(null) }, 5000)
+        pencereGoruntusu(w, tek)
+    }
+
+    @TargetApi(34)
+    private fun pencereGoruntusu(w: AccessibilityWindowInfo, sonuc: (TespitSonucu?) -> Unit) {
+        val sinir = Rect().also { w.getBoundsInScreen(it) }
+        guvenli {
+            takeScreenshotOfWindow(w.id, yurutucu, geriCagirma(sinir.left, sinir.top, sonuc))
+        }
+    }
+
+    /** Dokunulunca: Android 11+ tam ekran görüntüsü (balon bir an gizlenir). Sonuç en fazla 5 sn'de döner. */
     private fun goruntudenBul(sonuc: (TespitSonucu?) -> Unit) {
         if (Build.VERSION.SDK_INT < 30) { sonuc(null); return }
         var bitti = false
         val tek: (TespitSonucu?) -> Unit = { t -> if (!bitti) { bitti = true; balon?.visibility = View.VISIBLE; sonuc(t) } }
         ana.postDelayed({ tek(null) }, 5000)
-        goruntuAl(tek)
+        val w = githubPenceresi()
+        if (Build.VERSION.SDK_INT >= 34 && w != null) { pencereGoruntusu(w, tek); return }
+        tamEkranGoruntusu(tek)
     }
 
     @TargetApi(30)
-    private fun goruntuAl(sonuc: (TespitSonucu?) -> Unit) {
+    private fun tamEkranGoruntusu(sonuc: (TespitSonucu?) -> Unit) {
         balon?.visibility = View.INVISIBLE // kendi balonumuz görüntüye girmesin
         ana.postDelayed({
-            guvenli {
-                takeScreenshot(Display.DEFAULT_DISPLAY, yurutucu, object : TakeScreenshotCallback {
-                    override fun onSuccess(r: ScreenshotResult) {
-                        val bmp = try {
-                            val tampon = r.hardwareBuffer
-                            val donanim = Bitmap.wrapHardwareBuffer(tampon, r.colorSpace)
-                            val yazilim = donanim?.copy(Bitmap.Config.ARGB_8888, false)
-                            donanim?.recycle(); tampon.close()
-                            // Sadece üst %35: başlık çubuğu burada
-                            yazilim?.let { b ->
-                                val k = Bitmap.createBitmap(b, 0, 0, b.width, (b.height * 0.35f).toInt())
-                                if (k !== b) b.recycle()
-                                k
-                            }
-                        } catch (_: Throwable) { null }
-                        ana.post {
-                            if (bmp == null) { sonuc(null); return@post }
-                            try {
-                                okuyucu.process(InputImage.fromBitmap(bmp, 0))
-                                    .addOnSuccessListener { yazi ->
-                                        guvenli {
-                                            val yazilar = yazi.textBlocks.flatMap { it.lines }.mapNotNull { l ->
-                                                val k = l.boundingBox ?: return@mapNotNull null
-                                                EkranYazisi(l.text, k.left, k.top, k.right, k.bottom)
-                                            }
-                                            val dm = resources.displayMetrics
-                                            sonuc(RepoTespit.bul(yazilar, dm.heightPixels, dm.density))
-                                        }
-                                    }
-                                    .addOnFailureListener { sonuc(null) }
-                                    .addOnCompleteListener { bmp.recycle() }
-                            } catch (_: Throwable) { sonuc(null) }
-                        }
-                    }
-
-                    override fun onFailure(kod: Int) { ana.post { sonuc(null) } }
-                })
-            }
+            guvenli { takeScreenshot(Display.DEFAULT_DISPLAY, yurutucu, geriCagirma(0, 0, sonuc)) }
         }, 90)
+    }
+
+    @TargetApi(30)
+    private fun geriCagirma(ofsX: Int, ofsY: Int, sonuc: (TespitSonucu?) -> Unit) = object : TakeScreenshotCallback {
+        override fun onSuccess(r: ScreenshotResult) {
+            val bmp = try {
+                val tampon = r.hardwareBuffer
+                val donanim = Bitmap.wrapHardwareBuffer(tampon, r.colorSpace)
+                val yazilim = donanim?.copy(Bitmap.Config.ARGB_8888, false)
+                donanim?.recycle(); tampon.close()
+                // Sadece üst %35: başlık çubuğu burada
+                yazilim?.let { b ->
+                    val k = Bitmap.createBitmap(b, 0, 0, b.width, (b.height * 0.35f).toInt().coerceAtLeast(1))
+                    if (k !== b) b.recycle()
+                    k
+                }
+            } catch (_: Throwable) { null }
+            ana.post {
+                if (bmp == null) { sonuc(null); return@post }
+                try {
+                    okuyucu.process(InputImage.fromBitmap(bmp, 0))
+                        .addOnSuccessListener { yazi ->
+                            guvenli {
+                                val yazilar = yazi.textBlocks.flatMap { it.lines }.mapNotNull { l ->
+                                    val k = l.boundingBox ?: return@mapNotNull null
+                                    EkranYazisi(l.text, k.left + ofsX, k.top + ofsY, k.right + ofsX, k.bottom + ofsY)
+                                }
+                                val dm = resources.displayMetrics
+                                sonuc(RepoTespit.bul(yazilar, dm.heightPixels, dm.density))
+                            }
+                        }
+                        .addOnFailureListener { sonuc(null) }
+                        .addOnCompleteListener { bmp.recycle() }
+                } catch (_: Throwable) { sonuc(null) }
+            }
+        }
+
+        override fun onFailure(kod: Int) { ana.post { sonuc(null) } }
     }
 
     // ---------------- Balona dokunulunca ----------------
@@ -263,10 +342,13 @@ class BalonServisi : AccessibilityService() {
         val simdi = SystemClock.uptimeMillis()
         if (mesgul || simdi - sonAcilis < 800) return
         balon?.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-        val t = agactanBul()
+        val t = agactanBul() ?: sonRepo
+
+        // Arka planda hazırlandıysa (ya da hazırlanıyorsa) doğrudan aç: ad zaten düzeltildi
+        t?.let { OnHazirlik.cozulmusAd(it) }?.let { (s, a) -> panelAc(s, a); return }
         if (t != null && t.kesik == TespitSonucu.Kesik.YOK) { panelAc(t.sahip, t.ad); return }
 
-        // Ağaçta yoksa ya da ad kesikse: ekrandan oku
+        // Ekran yazısında yoksa ya da ad kesikse: ekrandan oku
         mesgulOl(true)
         goruntudenBul { g ->
             guvenli {
@@ -307,8 +389,16 @@ class BalonServisi : AccessibilityService() {
         balon?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         agactanBul()
         val r = sonRepo
-        val m = if (r != null) getString(R.string.bubble_detected, "${r.sahip}/${r.ad}", sonYontem)
-        else getString(R.string.bubble_not_detected, sonYaziSayisi)
+        val h = OnHazirlik.hal
+        val m = if (r != null) {
+            val durum = when {
+                OnHazirlik.cozulmusAd(r) == null || h == null -> ""
+                h.durum == OnHazirlik.Durum.HAZIR -> "\n✅ " + getString(R.string.bubble_ready)
+                h.durum == OnHazirlik.Durum.HAZIRLANIYOR -> "\n⏳ " + getString(R.string.bubble_preparing, (h.ilerleme * 100).toInt())
+                else -> "\n⚠️ " + getString(R.string.bubble_prep_failed)
+            }
+            getString(R.string.bubble_detected, "${r.sahip}/${r.ad}", sonYontem) + durum
+        } else getString(R.string.bubble_not_detected, sonYaziSayisi)
         Toast.makeText(this, m, Toast.LENGTH_LONG).show()
     }
 
@@ -321,11 +411,15 @@ class BalonServisi : AccessibilityService() {
         val pencere = wm ?: return
         val d = resources.displayMetrics.density
         val b = boyut()
-        val t = ImageView(this).apply {
-            setImageResource(R.drawable.ic_balon)
+        val kap = FrameLayout(this).apply {
             elevation = 6 * d
             contentDescription = getString(R.string.bubble_desc)
         }
+        val res = ImageView(this).apply { setImageResource(R.drawable.ic_balon) }
+        val hl = Halka(this).apply { visibility = View.GONE }
+        kap.addView(res, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        kap.addView(hl, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+
         val tercih = getSharedPreferences(TERCIH, MODE_PRIVATE)
         val p = WindowManager.LayoutParams(
             b, b,
@@ -340,14 +434,14 @@ class BalonServisi : AccessibilityService() {
 
         var basX = 0f; var basY = 0f; var ilkX = 0; var ilkY = 0
         var surukle = false; var basZaman = 0L
-        val uzunBasma = Runnable { if (!surukle) { surukle = false; basZaman = -1; teshis() } }
-        t.setOnTouchListener { _, e ->
+        val uzunBasma = Runnable { if (!surukle) { basZaman = -1; teshis() } }
+        kap.setOnTouchListener { _, e ->
             try {
                 when (e.actionMasked) {
                     MotionEvent.ACTION_DOWN -> {
                         basX = e.rawX; basY = e.rawY; ilkX = p.x; ilkY = p.y
                         surukle = false; basZaman = SystemClock.uptimeMillis()
-                        t.animate().scaleX(0.9f).scaleY(0.9f).setDuration(80).start()
+                        kap.animate().scaleX(0.9f).scaleY(0.9f).setDuration(80).start()
                         ana.postDelayed(uzunBasma, 650)
                     }
                     MotionEvent.ACTION_MOVE -> {
@@ -360,7 +454,7 @@ class BalonServisi : AccessibilityService() {
                     }
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                         ana.removeCallbacks(uzunBasma)
-                        t.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
+                        kap.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
                         when {
                             surukle -> kenaraYerlestir(animasyon = true)
                             basZaman < 0 -> {} // uzun basma zaten işlendi
@@ -372,8 +466,8 @@ class BalonServisi : AccessibilityService() {
             true
         }
         try {
-            pencere.addView(t, p)
-            balon = t; params = p
+            pencere.addView(kap, p)
+            balon = kap; resim = res; halka = hl; params = p
             balonuGuncelle()
             kenaraYerlestir(animasyon = false)
         } catch (x: Throwable) { Log.w(ETIKET, "balon eklenemedi", x) }
@@ -420,20 +514,64 @@ class BalonServisi : AccessibilityService() {
 
     private val griFiltre = ColorMatrixColorFilter(ColorMatrix().apply { setSaturation(0f) })
 
+    /**
+     * Gri: repo yok ya da hazırlanıyor (halka doluyor). Renkli: bu repo tamamen çevrildi.
+     */
     private fun balonuGuncelle() {
         val v = balon ?: return
         if (mesgul) return
-        val bulundu = sonRepo != null
-        // Repo bulunduysa renkli ve tam görünür; bulunamadıysa soluk ve gri (yine de dokunulabilir)
-        v.colorFilter = if (bulundu) null else griFiltre
-        v.alpha = if (bulundu) 1f else 0.6f
+        val r = sonRepo
+        val h = OnHazirlik.hal
+        val buRepo = r != null && OnHazirlik.cozulmusAd(r) != null && h != null
+        val hazir = buRepo && h!!.durum == OnHazirlik.Durum.HAZIR
+        val hazirlaniyor = buRepo && h!!.durum == OnHazirlik.Durum.HAZIRLANIYOR
+
+        resim?.colorFilter = if (hazir) null else griFiltre
+        v.alpha = if (r != null) 1f else 0.6f
+        halka?.let { hl ->
+            hl.visibility = if (hazirlaniyor) View.VISIBLE else View.GONE
+            if (hazirlaniyor) hl.ilerleme = h!!.ilerleme
+        }
     }
 
     private fun balonuKaldir() {
         nabiz?.cancel(); nabiz = null
         mesgul = false
         balon?.let { try { wm?.removeView(it) } catch (_: Throwable) {} }
-        balon = null; params = null
-        sonRepo = null
+        balon = null; resim = null; halka = null; params = null
+        sonRepo = null; aday = null
+    }
+
+    /** Balonun çevresinde dolan ilerleme halkası */
+    private class Halka(c: Context) : View(c) {
+        private val d = c.resources.displayMetrics.density
+        private val iz = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE; strokeWidth = 3.5f * d; color = Color.argb(70, 20, 20, 20)
+        }
+        private val dolu = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE; strokeWidth = 3.5f * d; color = Color.rgb(232, 50, 31); strokeCap = Paint.Cap.ROUND
+        }
+        private val kutu = RectF()
+
+        var ilerleme = 0f
+            set(v) {
+                val yeni = v.coerceIn(0f, 1f)
+                if (yeni == field) return
+                // Yumuşak geçiş
+                ValueAnimator.ofFloat(field, yeni).apply {
+                    duration = 180
+                    addUpdateListener { gosterilen = it.animatedValue as Float; invalidate() }
+                    start()
+                }
+                field = yeni
+            }
+        private var gosterilen = 0f
+
+        override fun onDraw(canvas: Canvas) {
+            val p = dolu.strokeWidth / 2 + 1
+            kutu.set(p, p, width - p, height - p)
+            canvas.drawArc(kutu, 0f, 360f, false, iz)
+            canvas.drawArc(kutu, -90f, 360f * gosterilen.coerceAtLeast(0.03f), false, dolu)
+        }
     }
 }

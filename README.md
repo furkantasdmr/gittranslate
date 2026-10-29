@@ -25,7 +25,8 @@ You open a repository in the GitHub app and the README is in Chinese, Japanese, 
 
 ### Features
 
-- **📖 One-tap README translation.** The bubble finds the repository on screen by itself, fetches its README from GitHub, and translates it paragraph by paragraph. Code blocks are not translated, and you can copy them with one tap.
+- **⚡ Ready before you tap.** As soon as you open a repository, GitTranslate fetches the README, the *About* text and the latest release notes and translates them in the background. While it works, the bubble stays grey with a progress ring; when everything is translated it turns colourful, and a tap opens the translated page instantly.
+- **📖 README, About and Releases.** The places people look first: the description, topics and website (*About*), the full README, and the latest release with its notes and downloads. Code blocks are not translated, and you can copy them with one tap.
 - **🖼️ Readable layout.** Headings, lists, tables, quotes, code and screenshots, cleaned up for a phone screen. Badges and HTML clutter are removed.
 - **🧭 "More about this repository".** In plain words: what kind of project it is, whether it runs on a phone or a computer, what the license allows, ready-made downloads (APK/EXE/DMG), and what the important folders are for.
 - **🌐 19 languages.** Turkish, English, German, French, Spanish, Portuguese, Italian, Dutch, Polish, Russian, Ukrainian, Arabic, Persian, Hindi, Indonesian, Vietnamese, Japanese, Korean and Chinese. The default is your phone's language.
@@ -82,7 +83,8 @@ GitHub uygulamasında bir repoya giriyorsun, README Çince, Japonca, Rusça… y
 
 ### Özellikler
 
-- **📖 Tek dokunuşla README çevirisi.** Balon ekrandaki repoyu kendisi bulur, README'yi GitHub'dan çeker ve paragraf paragraf çevirir. Kod blokları çevrilmez, tek dokunuşla kopyalanır.
+- **⚡ Sen dokunmadan hazır.** Bir repoyu açar açmaz GitTranslate README'yi, *About* açıklamasını ve son sürüm notlarını arka planda indirip çevirir. Bu sırada balon gri kalır ve çevresinde bir ilerleme halkası dolar; her şey çevrilince balon renklenir, dokununca çevrilmiş sayfa anında açılır.
+- **📖 README, Hakkında ve Sürümler.** İnsanların ilk baktığı yerler: açıklama, konular ve web sitesi (*About*), README'nin tamamı ve son sürümün notları ile indirmeleri. Kod blokları çevrilmez, tek dokunuşla kopyalanır.
 - **🖼️ Okunaklı düzen.** Başlıklar, listeler, tablolar, alıntılar, kodlar ve ekran görüntüleri telefon ekranına göre sadeleştirilir. Rozetler ve HTML kalabalığı temizlenir.
 - **🧭 "Bu repo hakkında daha fazla".** Sade bir dille: ne tür bir proje, telefonda mı bilgisayarda mı kullanılır, lisans neye izin veriyor, hazır indirmeler (APK/EXE/DMG), önemli klasörler ne işe yarıyor.
 - **🌐 19 dil.** Türkçe, İngilizce, Almanca, Fransızca, İspanyolca, Portekizce, İtalyanca, Felemenkçe, Lehçe, Rusça, Ukraynaca, Arapça, Farsça, Hintçe, Endonezce, Vietnamca, Japonca, Korece ve Çince. Varsayılanı telefonunun dilidir.

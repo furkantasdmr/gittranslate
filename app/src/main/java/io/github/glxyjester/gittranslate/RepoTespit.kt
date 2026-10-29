@@ -12,7 +12,16 @@ package io.github.glxyjester.gittranslate
 data class EkranYazisi(val metin: String, val sol: Int, val ust: Int, val sag: Int, val alt: Int)
 
 /** Bulunan repo. [kesik] doluysa ad tam görünmüyordu; [RepoTespit.kesikAdiEslestir] ile tamamlanmalı. */
-data class TespitSonucu(val sahip: String, val ad: String, val kesik: Kesik = Kesik.YOK) {
+data class TespitSonucu(
+    val sahip: String,
+    val ad: String,
+    val kesik: Kesik = Kesik.YOK,
+    /**
+     * false: ekranda birden çok repo adı var (arama sonuçları, liste…). Bu durumda arka planda
+     * hazırlık yapılmaz (GitHub'ın saatlik sınırını boşa harcamamak için); dokununca yine açılır.
+     */
+    val kesin: Boolean = true,
+) {
     enum class Kesik { YOK, BASI, SONU }
 }
 
@@ -53,33 +62,46 @@ object RepoTespit {
             val s = RepoAnaliz.baglantiAyikla(y.metin.takeIf { it.contains("github.com", ignoreCase = true) })
             if (s is RepoAnaliz.BaglantiSonucu.Repo) return TespitSonucu(s.sahip, s.ad)
         }
-        // 2) "sahip/repo" ya da "sahip / repo" biçiminde tek bir yazı (üstteki öncelikli)
-        yazilar.sortedBy { it.ust }.forEach { y ->
-            val m = SAHIP_AD.matchEntire(y.metin) ?: return@forEach
+        // 3) Üst bölgede alt alta iki yazı: küçük olan sahip, altındaki repo adı (repo sayfasının başlığı)
+        baslikCifti(yazilar, ekranYuksekligi, dp)?.let { return it }
+        // 2) "sahip/repo" ya da "sahip / repo" biçiminde yazılar (üstteki öncelikli)
+        val adaylar = yazilar.sortedBy { it.ust }.mapNotNull { y ->
+            val m = SAHIP_AD.matchEntire(y.metin) ?: return@mapNotNull null
             val sahip = m.groupValues[1]; val ad = m.groupValues[2]
-            if (sahip.any { it.isLetter() } && !arayuzYazisi(sahip) && ad.any { it.isLetter() }) return TespitSonucu(sahip, ad)
-        }
-        // 3) Üst bölgede alt alta iki yazı: küçük olan sahip, altındaki repo adı
-        return baslikCifti(yazilar, ekranYuksekligi, dp)
+            if (sahip.any { it.isLetter() } && !arayuzYazisi(sahip) && ad.any { it.isLetter() }) (sahip to ad) else null
+        }.distinctBy { "${it.first}/${it.second}".lowercase() }
+        val ilk = adaylar.firstOrNull() ?: return null
+        return TespitSonucu(ilk.first, ilk.second, kesin = adaylar.size == 1)
     }
 
     private fun baslikCifti(yazilar: List<EkranYazisi>, ekranYuksekligi: Int, dp: Float): TespitSonucu? {
-        val ust = yazilar.filter { it.ust < ekranYuksekligi * 0.30 && it.metin.isNotBlank() }.sortedBy { it.ust }
-        for (i in ust.indices) {
-            val a = ust[i]
+        val ciftler = ciftler(yazilar, dp)
+        val ust = ciftler.firstOrNull { it.second < ekranYuksekligi * 0.30 }?.first ?: return null
+        // Ekranın her yerinde aynı düzende başka sahip/repo çiftleri varsa bu bir liste olabilir
+        val farkli = ciftler.map { "${it.first.sahip}/${it.first.ad}".lowercase() }.distinct().size
+        return ust.copy(kesin = farkli == 1)
+    }
+
+    /** Alt alta duran (sahip, repo adı) çiftleri ve üst kenarları, yukarıdan aşağı */
+    private fun ciftler(yazilar: List<EkranYazisi>, dp: Float): List<Pair<TespitSonucu, Int>> {
+        val sirali = yazilar.filter { it.metin.isNotBlank() }.sortedBy { it.ust }
+        val sonuc = ArrayList<Pair<TespitSonucu, Int>>()
+        for (i in sirali.indices) {
+            val a = sirali[i]
             val sahip = a.metin.trim()
             if (!SAHIP.matches(sahip) || arayuzYazisi(sahip) || sahip.none { it.isLetter() }) continue
-            for (j in i + 1 until ust.size) {
-                val b = ust[j]
+            for (j in i + 1 until sirali.size) {
+                val b = sirali[j]
                 if (b.ust - a.alt > 40 * dp) break
                 if (b.ust < a.ust + (a.alt - a.ust) / 2) continue // aynı satır
                 if (kotlin.math.abs(b.sol - a.sol) > 28 * dp) continue
                 val (ad, kesik) = elipsSil(b.metin)
                 if (ad.length < 2 || !AD.matches(ad) || arayuzYazisi(ad)) continue
-                return TespitSonucu(sahip, ad, kesik)
+                sonuc.add(TespitSonucu(sahip, ad, kesik) to a.ust)
+                break
             }
         }
-        return null
+        return sonuc
     }
 
     /**

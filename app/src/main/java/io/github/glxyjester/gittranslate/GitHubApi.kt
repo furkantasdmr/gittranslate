@@ -16,7 +16,12 @@ import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 
 data class SurumDosyasi(val ad: String, val adres: String, val boyut: Long)
-data class Surum(val etiket: String, val ad: String, val adres: String, val dosyalar: List<SurumDosyasi>)
+data class Surum(
+    val etiket: String, val ad: String, val adres: String, val dosyalar: List<SurumDosyasi>,
+    /** Sürüm notları (Markdown) */
+    val notlar: String = "",
+    val tarih: Long? = null,
+)
 data class KokOgesi(val ad: String, val klasor: Boolean)
 
 data class RepoBilgisi(
@@ -72,7 +77,7 @@ object GitHubApi {
     }
 
     /**
-     * @param tam false: açıklama + README; true: ayrıca kök dosyalar ve son sürüm
+     * @param tam false: açıklama + README + son sürüm; true: ayrıca kök dosyalar
      */
     fun getir(sahip: String, ad: String, tam: Boolean, sonuc: (RepoBilgisi?, ApiHatasi?) -> Unit) {
         val anahtar = "$sahip/$ad".lowercase()
@@ -129,7 +134,7 @@ object GitHubApi {
         val repoF = havuz.submit(Callable { iste(temel) })
         val readmeF = havuz.submit(Callable { iste("$temel/readme", ham = true) })
         val kokF = if (tam) havuz.submit(Callable { iste("$temel/contents") }) else null
-        val surumF = if (tam) havuz.submit(Callable { iste("$temel/releases/latest") }) else null
+        val surumF = havuz.submit(Callable { iste("$temel/releases/latest") })
 
         val repo = repoF.get()
         if (repo.sifirlanma != null) {
@@ -160,7 +165,7 @@ object GitHubApi {
             } catch (_: Exception) { emptyList() }
         } ?: eski?.kok
 
-        val surum = surumF?.get()?.let { c -> if (c.kod == 200) surumAyristir(c.govde) else null } ?: eski?.surum
+        val surum = surumF.get().let { c -> if (c.kod == 200) surumAyristir(c.govde) else if (c.kod == 404) null else eski?.surum }
 
         val konular = j.optJSONArray("topics")?.let { t -> (0 until t.length()).map { t.getString(it) } } ?: emptyList()
         val lisans = j.optJSONObject("license")
@@ -195,6 +200,8 @@ object GitHubApi {
                 val d = v.getJSONObject(i)
                 SurumDosyasi(d.optString("name"), d.optString("browser_download_url"), d.optLong("size"))
             },
+            notlar = o.yaziVeyaNull("body").orEmpty().take(20000),
+            tarih = tarih(o.yaziVeyaNull("published_at")),
         )
     } catch (_: Exception) { null }
 
@@ -272,6 +279,7 @@ object GitHubApi {
             r.kok?.let { k -> o.put("kok", JSONArray(k.map { JSONObject().put("ad", it.ad).put("klasor", it.klasor) })) }
             r.surum?.let { s ->
                 o.put("surum", JSONObject().put("etiket", s.etiket).put("ad", s.ad).put("adres", s.adres)
+                    .put("notlar", s.notlar).put("tarih", s.tarih ?: 0L)
                     .put("dosyalar", JSONArray(s.dosyalar.map { JSONObject().put("ad", it.ad).put("adres", it.adres).put("boyut", it.boyut) })))
             }
             val gecici = File(f.path + ".tmp")
@@ -289,7 +297,8 @@ object GitHubApi {
             val surum = o.optJSONObject("surum")?.let { s ->
                 val d = s.optJSONArray("dosyalar") ?: JSONArray()
                 Surum(s.optString("etiket"), s.optString("ad"), s.optString("adres"),
-                    (0 until d.length()).map { d.getJSONObject(it).let { x -> SurumDosyasi(x.optString("ad"), x.optString("adres"), x.optLong("boyut")) } })
+                    (0 until d.length()).map { d.getJSONObject(it).let { x -> SurumDosyasi(x.optString("ad"), x.optString("adres"), x.optLong("boyut")) } },
+                    notlar = s.optString("notlar"), tarih = s.optLong("tarih").takeIf { it > 0 })
             }
             RepoBilgisi(
                 sahip = o.getString("sahip"), ad = o.getString("ad"), aciklama = o.yaziVeyaNull("aciklama"),
