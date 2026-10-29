@@ -69,6 +69,8 @@ Tips: **drag** the bubble to move it (it snaps to the nearest edge). **Hold** it
 
 You don't need a computer. Every push to `main` runs the tests, builds the APK on GitHub Actions and publishes a new release.
 
+**Releases:** a new release is published only when the number in the `VERSION` file changes (e.g. `1.0.0` → `1.0.1`). Other pushes just build and test.
+
 **Signing:** every release is signed with the same key, so updates install over the previous version. On the first build, the workflow creates a key and keeps it in the Actions cache. To keep it forever, add your own key as repository secrets `IMZA_DOSYASI_B64` (the keystore, base64) and `IMZA_SIFRE` (its password, alias `gittranslate`).
 
 Contributions are welcome! Adding a language to section detection only takes a few keywords in `RepoAnaliz.kt`.
@@ -114,6 +116,8 @@ GitHub uygulamasında bir repoya giriyorsun, README Çince, Japonca, Rusça… y
 ### Derleme
 
 Bilgisayar gerekmez. `main` dalına her gönderimde GitHub Actions testleri çalıştırır, APK'yı derler ve yeni bir sürüm yayınlar.
+
+**Sürümler:** Yeni sürüm yalnızca `VERSION` dosyasındaki numara değişince yayınlanır (ör. `1.0.0` → `1.0.1`). Diğer gönderimler sadece derlenir ve test edilir.
 
 **İmza:** Bütün sürümler aynı anahtarla imzalanır, böylece güncellemeler eskisinin üstüne kurulur. İlk derlemede iş akışı bir anahtar üretip Actions önbelleğinde saklar. Anahtarın kalıcı olmasını istersen kendi anahtarını repo secret'ı olarak ekle: `IMZA_DOSYASI_B64` (keystore, base64) ve `IMZA_SIFRE` (şifresi; takma ad `gittranslate`).
 
