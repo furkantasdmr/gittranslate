@@ -1,4 +1,4 @@
-package com.glxyjester.githubcevirmen
+package io.github.glxyjester.gittranslate
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory

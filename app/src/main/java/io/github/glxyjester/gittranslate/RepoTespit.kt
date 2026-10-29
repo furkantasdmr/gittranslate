@@ -1,4 +1,4 @@
-package com.glxyjester.githubcevirmen
+package io.github.glxyjester.gittranslate
 
 /*
  * Ekranda görünen yazılardan hangi repoda olunduğunu bulur. Android'e bağımlı değildir (birim testli).

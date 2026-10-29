@@ -1,48 +1,116 @@
-# GitHub Çevirmen · Repoyu anlat
+<p align="center">
+  <img src="docs/icon.png" width="128" alt="GitTranslate">
+</p>
 
-**En kolay kullanım:** Uygulamada balonu bir kez aç. GitHub'da bir reponun içindeyken sağdaki 📖 balonuna dokun, README senin dilinde açılsın. Balon hangi repoda olduğunu ekrandaki başlıktan (gerekirse ekran görüntüsünden) bulur; README'yi GitHub'dan çekip internetten çevirir.
+<h1 align="center">GitTranslate</h1>
 
-GitHub'da bir repoya girdin ama ne işe yaradığını, nasıl kurulduğunu, nereye bakman gerektiğini anlamadın mı? Hele README Çince ya da İngilizceyse?
+<p align="center">
+  <b>Read any GitHub README in your own language, right inside the GitHub app.</b><br>
+  <b>Her GitHub README'sini, GitHub uygulamasından çıkmadan kendi dilinde oku.</b>
+</p>
 
-Bu küçük Android uygulaması GitHub uygulamasının **Paylaş** menüsüne bir seçenek ekler: **Repoyu anlat**. Dokununca GitHub'dan çıkmadan, üstte açılan bir panelde repo **senin dilinde ve sade bölümlerle** gösterilir:
+<p align="center">
+  <a href="../../releases/latest">⬇️ Download / İndir</a> ·
+  <a href="#english">English</a> ·
+  <a href="#türkçe">Türkçe</a>
+</p>
 
-- **Bu repo ne işe yarar?** Açıklama ve README'nin girişi, çevrilmiş hâliyle. Yıldız sayısı, son güncelleme, arşiv uyarısı.
-- **Ne tür bir proje?** Telefonda mı kullanılır, bilgisayarda mı? Python mu, Android uygulaması mı, sadece bir liste mi? Lisans ne izin veriyor?
-- **Hazır indirmeler:** Son sürümdeki APK / EXE / DMG dosyaları, tek dokunuşla.
-- **Kurulum** ve **Kullanım:** README'den otomatik bulunur. Komutlar çevrilmez, **Kopyala** düğmesiyle alınır.
-- **README'nin geri kalanı:** Bölüm bölüm, açılıp kapanır.
-- **Önemli dosya ve klasörler:** `docs/`, `examples/`, `LICENSE` gibi dosyaların ne olduğu.
+---
 
-## İlkeler
+## English
 
-- **Yapay zekâ yok.** Her şey GitHub'ın standart bilgilerinden kurallarla çıkarılır, sonra çevrilir.
-- **Ücretsiz, hesap ve anahtar gerektirmez.** GitHub'ın herkese açık API'si kullanılır (saatte ~15 repo).
-- **Çeviri telefonun içinde yapılır** (Google ML Kit). Dil paketi inemezse metin Google Çeviri'ye gönderilerek çevrilir.
-- Arayüz Türkçe ve İngilizce. Çeviri dili 19 dilden seçilebilir, varsayılanı telefonun dilidir.
+You open a repository in the GitHub app and the README is in Chinese, Japanese, Russian… or English you can't follow. You don't know what the project does, how to install it, or where to start.
 
-## Kurulum
+**GitTranslate** adds a small 文→A bubble next to the GitHub app. Tap it while you are inside a repository: the README opens in a panel on top of GitHub, **translated into your language**. Close the panel and you are back where you were.
 
-1. [Releases](../../releases/latest) bölümünden `GitHub-Cevirmen.apk` dosyasını indirip kur.
-2. GitHub uygulamasında bir repo aç → **Paylaş** → **Repoyu anlat**.
+### Features
 
-İstersen uygulamayı açıp bağlantı da yapıştırabilirsin.
+- **📖 One-tap README translation.** The bubble finds the repository on screen by itself, fetches its README from GitHub, and translates it paragraph by paragraph. Code blocks are not translated, and you can copy them with one tap.
+- **🖼️ Readable layout.** Headings, lists, tables, quotes, code and screenshots, cleaned up for a phone screen. Badges and HTML clutter are removed.
+- **🧭 "More about this repository".** In plain words: what kind of project it is, whether it runs on a phone or a computer, what the license allows, ready-made downloads (APK/EXE/DMG), and what the important folders are for.
+- **🌐 19 languages.** Turkish, English, German, French, Spanish, Portuguese, Italian, Dutch, Polish, Russian, Ukrainian, Arabic, Persian, Hindi, Indonesian, Vietnamese, Japanese, Korean and Chinese. The default is your phone's language.
+- **🤝 Share menu too.** GitHub → Share → *Explain repo* works without the bubble.
+- **No AI, no account, no API key.** Free and open source (MIT).
 
-## Kod
+### Install
 
-| Dosya | Ne yapar |
+1. Download `GitTranslate.apk` from [Releases](../../releases/latest) and install it.
+2. Open GitTranslate → **Turn on the bubble** → enable **GitTranslate** under *Accessibility → Downloaded apps*.
+   - Android 13+: if it is greyed out ("Restricted setting"), open **App info** → **⋮** (top right) → **Allow restricted settings**, then try again.
+3. Optional but recommended: **Allow running in background**, so aggressive battery savers (Xiaomi, Huawei, Samsung…) don't stop the bubble.
+4. Open any repository in the GitHub app and tap the bubble.
+
+Tips: **drag** the bubble to move it (it snaps to the nearest edge). **Hold** it to see which repository it detected. When the bubble is grey, it hasn't recognized a repository on screen yet, but tapping it still makes it look again.
+
+### Privacy
+
+- The bubble uses Android's accessibility service **only while the GitHub app is in front**, and only to find the repository's name on screen (from the screen text, or if needed from a screenshot of the top of the screen that is read **on the device**). It does nothing in other apps and stores nothing.
+- Repository information comes from GitHub's public API (`api.github.com`, `raw.githubusercontent.com`).
+- README text is translated with Google Translate over the internet. Without internet, the on-device Google ML Kit translator is used.
+
+### How it works
+
+| File | What it does |
 |---|---|
-| `RepoActivity.kt` | Paylaş menüsünden açılan panel ve tüm bölümler |
-| `GitHubApi.kt` | Repo bilgisi, README, kök dosyalar, son sürüm (4 istek) |
-| `Markdown.kt` | README'yi başlık/paragraf/liste/kod/tablo parçalarına ve bölümlere ayırır |
-| `RepoAnaliz.kt` | Proje türü, lisansın anlamı, dosya açıklamaları, bölüm türleri (kurallarla) |
-| `CeviriMotoru.kt` | Dil tanıma + çeviri, önbellek |
-| `MainActivity.kt` | Açılış ekranı |
+| `BalonServisi.kt` | Accessibility service: shows the bubble while GitHub is open and detects the repository |
+| `RepoTespit.kt` | Finds `owner/repo` from on-screen texts, and completes names that are cut off ("…tive-divisions-of-China") |
+| `RepoActivity.kt` | The panel: README view and the "more about this repository" view |
+| `GitHubApi.kt` | GitHub API client: 2 requests for a README, disk cache, raw-server fallback when the hourly limit is reached |
+| `Markdown.kt` | Turns README Markdown/HTML into headings, paragraphs, lists, code, tables and images |
+| `RepoAnaliz.kt` | Rule-based hints: project type, license meaning, folder explanations, section types |
+| `CeviriMotoru.kt` | Translation: Google Translate first, on-device ML Kit as fallback, with a cache |
 
-`Markdown.kt` ve `RepoAnaliz.kt` Android'den bağımsızdır, `app/src/test` altında birim testleri var.
-Yeni bir dil için bölüm anahtar kelimesi eklemek istersen `RepoAnaliz.kt` içindeki listelere eklemen yeter.
+`Markdown.kt`, `RepoAnaliz.kt` and `RepoTespit.kt` don't depend on Android and have unit tests in `app/src/test`.
 
-## Derleme
+### Building
 
-Bilgisayar gerekmez: `main` dalına her gönderimde GitHub Actions testleri çalıştırır, APK'yı derler ve yeni bir Release yayınlar.
+You don't need a computer. Every push to `main` runs the tests, builds the APK on GitHub Actions and publishes a new release.
 
-> Not: APK standart debug imzasıyla imzalanır. Yeni sürüm "uygulama yüklenmedi" derse önce eskisini kaldır.
+**Signing:** every release is signed with the same key, so updates install over the previous version. On the first build, the workflow creates a key and keeps it in the Actions cache. To keep it forever, add your own key as repository secrets `IMZA_DOSYASI_B64` (the keystore, base64) and `IMZA_SIFRE` (its password, alias `gittranslate`).
+
+Contributions are welcome! Adding a language to section detection only takes a few keywords in `RepoAnaliz.kt`.
+
+> GitTranslate is an independent open-source project and is not affiliated with or endorsed by GitHub, Inc.
+
+---
+
+## Türkçe
+
+GitHub uygulamasında bir repoya giriyorsun, README Çince, Japonca, Rusça… ya da anlayamadığın bir İngilizceyle yazılmış. Projenin ne işe yaradığını, nasıl kurulduğunu, nereden başlayacağını bilmiyorsun.
+
+**GitTranslate**, GitHub uygulamasının yanına küçük bir 文→A balonu ekler. Bir reponun içindeyken balona dokun: README, GitHub'ın üstünde açılan bir panelde **senin diline çevrilmiş olarak** görünür. Paneli kapatınca kaldığın yere dönersin.
+
+### Özellikler
+
+- **📖 Tek dokunuşla README çevirisi.** Balon ekrandaki repoyu kendisi bulur, README'yi GitHub'dan çeker ve paragraf paragraf çevirir. Kod blokları çevrilmez, tek dokunuşla kopyalanır.
+- **🖼️ Okunaklı düzen.** Başlıklar, listeler, tablolar, alıntılar, kodlar ve ekran görüntüleri telefon ekranına göre sadeleştirilir. Rozetler ve HTML kalabalığı temizlenir.
+- **🧭 "Bu repo hakkında daha fazla".** Sade bir dille: ne tür bir proje, telefonda mı bilgisayarda mı kullanılır, lisans neye izin veriyor, hazır indirmeler (APK/EXE/DMG), önemli klasörler ne işe yarıyor.
+- **🌐 19 dil.** Türkçe, İngilizce, Almanca, Fransızca, İspanyolca, Portekizce, İtalyanca, Felemenkçe, Lehçe, Rusça, Ukraynaca, Arapça, Farsça, Hintçe, Endonezce, Vietnamca, Japonca, Korece ve Çince. Varsayılanı telefonunun dilidir.
+- **🤝 Paylaş menüsü de var.** Balonu kullanmadan GitHub → Paylaş → *Repoyu anlat* ile de açılır.
+- **Yapay zekâ yok, hesap yok, API anahtarı yok.** Ücretsiz ve açık kaynak (MIT).
+
+### Kurulum
+
+1. [Releases](../../releases/latest) bölümünden `GitTranslate.apk` dosyasını indirip kur.
+2. GitTranslate'i aç → **Balonu aç** → *Erişilebilirlik → İndirilen uygulamalar* altında **GitTranslate**'i aç.
+   - Android 13 ve üstü: gri görünüyor ya da "Kısıtlı ayar" diyorsa **Uygulama bilgisi** → sağ üstteki **⋮** → **Kısıtlanmış ayarlara izin ver**, sonra tekrar dene.
+3. İsteğe bağlı ama önerilir: **Arka planda çalışmasına izin ver**. Böylece agresif pil tasarrufu yapan telefonlar (Xiaomi, Huawei, Samsung…) balonu kapatmaz.
+4. GitHub uygulamasında herhangi bir repoyu aç ve balona dokun.
+
+İpuçları: balonu **sürükleyerek** taşıyabilirsin, bırakınca en yakın kenara yapışır. **Basılı tutarsan** hangi repoyu bulduğunu gösterir. Balon griyse ekranda henüz bir repo tanımamıştır; yine de dokunursan tekrar arar.
+
+### Gizlilik
+
+- Balon, Android'in erişilebilirlik servisini **yalnızca GitHub uygulaması öndeyken** ve sadece ekrandaki repo adını bulmak için kullanır. Adı ekran yazısından, gerekirse ekranın üst kısmının görüntüsünden bulur ve bu görüntü **telefonun içinde** okunur. Başka uygulamalarda hiçbir şey yapmaz, hiçbir şey saklamaz.
+- Repo bilgileri GitHub'ın herkese açık API'sinden gelir (`api.github.com`, `raw.githubusercontent.com`).
+- README metni internet üzerinden Google Çeviri ile çevrilir. İnternet yoksa telefonun içindeki Google ML Kit çevirmeni kullanılır.
+
+### Derleme
+
+Bilgisayar gerekmez. `main` dalına her gönderimde GitHub Actions testleri çalıştırır, APK'yı derler ve yeni bir sürüm yayınlar.
+
+**İmza:** Bütün sürümler aynı anahtarla imzalanır, böylece güncellemeler eskisinin üstüne kurulur. İlk derlemede iş akışı bir anahtar üretip Actions önbelleğinde saklar. Anahtarın kalıcı olmasını istersen kendi anahtarını repo secret'ı olarak ekle: `IMZA_DOSYASI_B64` (keystore, base64) ve `IMZA_SIFRE` (şifresi; takma ad `gittranslate`).
+
+Katkılara açığız! Bölüm tanımaya yeni bir dil eklemek için `RepoAnaliz.kt` içindeki listelere birkaç anahtar kelime eklemek yeterli.
+
+> GitTranslate bağımsız bir açık kaynak projesidir; GitHub, Inc. ile bir bağlantısı yoktur ve GitHub tarafından onaylanmamıştır.

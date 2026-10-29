@@ -1,4 +1,4 @@
-name: APK Derle
+name: Build APK
 
 on:
   push:
@@ -21,12 +21,41 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      # Sabit imza anahtarı: güncellemeler eski sürümün üstüne kurulabilsin.
+      # 1) Repo secret'ları (IMZA_DOSYASI_B64 + IMZA_SIFRE) varsa onlar kullanılır.
+      # 2) Yoksa ilk derlemede bir anahtar üretilir ve Actions önbelleğinde saklanır.
+      - name: İmza anahtarını önbellekten al
+        uses: actions/cache@v4
+        with:
+          path: ~/.imza
+          key: gittranslate-imza-v1
+
+      - name: İmza anahtarını hazırla
+        env:
+          IMZA_B64: ${{ secrets.IMZA_DOSYASI_B64 }}
+          IMZA_SIFRE_SECRET: ${{ secrets.IMZA_SIFRE }}
+        run: |
+          mkdir -p ~/.imza
+          if [ -n "$IMZA_B64" ] && [ -n "$IMZA_SIFRE_SECRET" ]; then
+            echo "$IMZA_B64" | base64 -d > ~/.imza/anahtar.jks
+            printf '%s' "$IMZA_SIFRE_SECRET" > ~/.imza/sifre
+          fi
+          if [ ! -f ~/.imza/anahtar.jks ]; then
+            S=$(openssl rand -hex 24)
+            keytool -genkeypair -keystore ~/.imza/anahtar.jks -storepass "$S" -keypass "$S" \
+              -alias gittranslate -keyalg RSA -keysize 3072 -validity 12000 -dname "CN=GitTranslate"
+            printf '%s' "$S" > ~/.imza/sifre
+          fi
+          echo "::add-mask::$(cat ~/.imza/sifre)"
+          echo "IMZA_DOSYASI=$HOME/.imza/anahtar.jks" >> "$GITHUB_ENV"
+          echo "IMZA_SIFRE=$(cat ~/.imza/sifre)" >> "$GITHUB_ENV"
+
       - name: Test et ve APK'yı derle
         run: |
           set -o pipefail
           chmod +x gradlew
           ./gradlew testReleaseUnitTest assembleRelease --stacktrace 2>&1 | tee build.log
-          cp app/build/outputs/apk/release/app-release.apk GitHub-Cevirmen.apk
+          cp app/build/outputs/apk/release/app-release.apk GitTranslate.apk
 
       - name: Hataları özetle
         if: failure()
@@ -46,14 +75,16 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: GitHub-Cevirmen
-          path: GitHub-Cevirmen.apk
+          name: GitTranslate
+          path: GitTranslate.apk
 
       - name: Release olarak yayınla (telefondan kolay indirmek için)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.${{ github.run_number }}
-          name: GitHub Çevirmen v1.0.${{ github.run_number }}
-          body: Telefonuna indirip kur. Kurulum adımları için README'ye bak.
-          files: GitHub-Cevirmen.apk
+          tag_name: v1.1.${{ github.run_number }}
+          name: GitTranslate v1.1.${{ github.run_number }}
+          body: |
+            📱 Download `GitTranslate.apk` on your phone and install it. See the README for setup.
+            📱 `GitTranslate.apk` dosyasını telefonuna indirip kur. Kurulum için README'ye bak.
+          files: GitTranslate.apk
           make_latest: true

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">GitHub Çevirmen</string>
+    <string name="app_name">GitTranslate</string>
     <string name="share_label">Explain repo</string>
     <string name="loading">Loading repository info…</string>
     <string name="err_not_found">Repository not found. It may be private, or the link is wrong.</string>
@@ -111,13 +111,13 @@
     <string name="bubble_not_detected">No repository found on this screen yet (%d texts read).</string>
     <string name="bubble_desc">Open README in my language</string>
     <string name="btn_more_info">More about this repository</string>
-    <string name="service_label">GitHub Çevirmen bubble</string>
+    <string name="service_label">GitTranslate bubble</string>
     <string name="service_description">Shows a bubble on the right while the GitHub app is open. Tapping it opens the README of the repository on screen, translated into your language. It reads the screen only to find the repository name and does nothing in other apps.</string>
     <string name="main_bubble_title">Bubble in GitHub</string>
     <string name="main_bubble_desc">Turn this on once: while you are inside a repository in the GitHub app, a 📖 bubble appears on the right. Tap it and the README opens in your language. Hold it to see which repository it found; drag it to move.</string>
     <string name="main_bubble_btn">Turn on the bubble (Accessibility settings)</string>
     <string name="main_bubble_on">✅ Bubble is on</string>
-    <string name="main_bubble_off">⚪ Bubble is off — under Accessibility → Downloaded apps, turn on GitHub Çevirmen.</string>
+    <string name="main_bubble_off">⚪ Bubble is off — under Accessibility → Downloaded apps, turn on GitTranslate.</string>
     <string name="main_restricted">If it\'s greyed out or says \"Restricted setting\": open App info below, tap ⋮ at the top right → \"Allow restricted settings\", then try again.</string>
     <string name="main_app_info">Open App info</string>
     <string name="method_screen_text">screen text</string>

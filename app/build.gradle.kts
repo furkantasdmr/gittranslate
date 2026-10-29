@@ -6,23 +6,35 @@ plugins {
 // GitHub Actions her derlemede numarayı artırır; böylece yeni APK eskisinin üstüne kurulur.
 val buildNumber = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
 
+// İmza anahtarı CI'da hazırlanır (bkz. .github/workflows/apk.yml). Yoksa debug imzası kullanılır.
+val imzaDosyasi = System.getenv("IMZA_DOSYASI")?.let { file(it) }?.takeIf { it.exists() }
+
 android {
-    namespace = "com.glxyjester.githubcevirmen"
+    namespace = "io.github.glxyjester.gittranslate"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.glxyjester.githubcevirmen"
+        applicationId = "io.github.glxyjester.gittranslate"
         minSdk = 24
         targetSdk = 35
         versionCode = buildNumber
-        versionName = "1.0.$buildNumber"
+        versionName = "1.1.$buildNumber"
+    }
+
+    signingConfigs {
+        if (imzaDosyasi != null) create("surum") {
+            storeFile = imzaDosyasi
+            storePassword = System.getenv("IMZA_SIFRE")
+            keyAlias = "gittranslate"
+            keyPassword = System.getenv("IMZA_SIFRE")
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            // Kişisel kullanım: ayrı bir imza anahtarı yerine standart debug imzası
-            signingConfig = signingConfigs.getByName("debug")
+            // Sabit imza: yeni sürümler eskisinin üstüne kurulur
+            signingConfig = signingConfigs.findByName("surum") ?: signingConfigs.getByName("debug")
         }
     }
 

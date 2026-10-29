@@ -1,4 +1,4 @@
-package com.glxyjester.githubcevirmen
+package io.github.glxyjester.gittranslate
 
 import android.app.Activity
 import android.content.Intent

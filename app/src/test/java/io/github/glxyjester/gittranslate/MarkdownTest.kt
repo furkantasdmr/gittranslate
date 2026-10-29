@@ -1,4 +1,4 @@
-package com.glxyjester.githubcevirmen
+package io.github.glxyjester.gittranslate
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

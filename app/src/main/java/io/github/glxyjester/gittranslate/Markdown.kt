@@ -1,4 +1,4 @@
-package com.glxyjester.githubcevirmen
+package io.github.glxyjester.gittranslate
 
 /*
  * README (Markdown + biraz HTML) dosyasını basit parçalara ayırır.

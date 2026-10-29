@@ -1,4 +1,4 @@
-package com.glxyjester.githubcevirmen
+package io.github.glxyjester.gittranslate
 
 /*
  * Yapay zekâ kullanmadan, GitHub'ın standart bilgilerinden kurallarla çıkarım yapar:

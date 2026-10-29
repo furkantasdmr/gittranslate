@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">GitHub Çevirmen</string>
+    <string name="app_name">GitTranslate</string>
     <string name="share_label">Repoyu anlat</string>
     <string name="loading">Repo bilgileri alınıyor…</string>
     <string name="err_not_found">Repo bulunamadı. Gizli bir repo olabilir ya da bağlantı yanlış.</string>
@@ -111,13 +111,13 @@
     <string name="bubble_not_detected">Bu ekranda henüz repo bulunamadı (%d yazı okundu).</string>
     <string name="bubble_desc">README\'yi benim dilimde aç</string>
     <string name="btn_more_info">Bu repo hakkında daha fazla</string>
-    <string name="service_label">GitHub Çevirmen balonu</string>
+    <string name="service_label">GitTranslate balonu</string>
     <string name="service_description">GitHub uygulaması açıkken sağ kenarda bir balon gösterir. Dokununca ekrandaki reponun README\'sini senin diline çevrilmiş olarak açar. Ekranı yalnızca repo adını bulmak için okur, başka uygulamalarda hiçbir şey yapmaz.</string>
     <string name="main_bubble_title">GitHub\'da balon</string>
     <string name="main_bubble_desc">Bunu bir kez aç: GitHub uygulamasında bir reponun içindeyken sağda 📖 balonu çıkar. Dokununca README senin dilinde açılır. Basılı tutarsan hangi repoyu bulduğunu gösterir; sürükleyerek yerini değiştirebilirsin.</string>
     <string name="main_bubble_btn">Balonu aç (Erişilebilirlik ayarları)</string>
     <string name="main_bubble_on">✅ Balon açık</string>
-    <string name="main_bubble_off">⚪ Balon kapalı — Erişilebilirlik → İndirilen uygulamalar altında GitHub Çevirmen\'i aç.</string>
+    <string name="main_bubble_off">⚪ Balon kapalı — Erişilebilirlik → İndirilen uygulamalar altında GitTranslate\'i aç.</string>
     <string name="main_restricted">Gri görünüyor ya da \"Kısıtlı ayar\" diyorsa: aşağıdan Uygulama bilgisini aç, sağ üstteki ⋮ → \"Kısıtlanmış ayarlara izin ver\", sonra tekrar dene.</string>
     <string name="main_app_info">Uygulama bilgisini aç</string>
     <string name="method_screen_text">ekran yazısı</string>

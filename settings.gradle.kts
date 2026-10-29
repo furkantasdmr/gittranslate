@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "GitHubCevirmen"
+rootProject.name = "GitTranslate"
 include(":app")
