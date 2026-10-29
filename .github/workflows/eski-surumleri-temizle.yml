@@ -1,35 +1,42 @@
 name: Eski sürümleri temizle / Clean up old releases
 
 # Sadece elle çalışır: Actions → "Eski sürümleri temizle" → Run workflow
-# Belirtilen sürüm dışındaki bütün release'leri ve etiketlerini siler. Geri alınamaz.
+# Bütün release'leri ve v* etiketlerini siler, sonra güncel kodu VERSION dosyasındaki
+# numarayla temiz bir şekilde yeniden yayınlar ("Build APK"). Geri alınamaz.
 on:
   workflow_dispatch:
     inputs:
       kalacak:
-        description: "Kalacak sürüm etiketi / Release tag to keep"
-        required: true
-        default: "v1.0.1"
+        description: "Silinmeyecek bir sürüm etiketi varsa yaz (boş = hepsini sil) / Tag to keep (empty = delete all)"
+        required: false
+        default: ""
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   temizle:
     runs-on: ubuntu-latest
     steps:
-      - name: Diğer release'leri ve etiketleri sil
+      - name: Release'leri ve etiketleri sil
         env:
           GH_TOKEN: ${{ github.token }}
           KALACAK: ${{ github.event.inputs.kalacak }}
         run: |
-          set -e
-          gh release view "$KALACAK" -R "$GITHUB_REPOSITORY" >/dev/null || { echo "::error::$KALACAK bulunamadı, hiçbir şey silinmedi"; exit 1; }
           for t in $(gh release list -R "$GITHUB_REPOSITORY" -L 200 --json tagName -q '.[].tagName'); do
-            [ "$t" = "$KALACAK" ] && continue
+            [ -n "$KALACAK" ] && [ "$t" = "$KALACAK" ] && continue
             gh release delete "$t" -R "$GITHUB_REPOSITORY" --cleanup-tag -y && echo "::notice::silindi: $t"
           done
           # Release'i olmayan eski etiketler
           for t in $(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/v" -q '.[].ref' | sed 's#refs/tags/##'); do
-            [ "$t" = "$KALACAK" ] && continue
+            [ -n "$KALACAK" ] && [ "$t" = "$KALACAK" ] && continue
             gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/tags/$t" && echo "::notice::etiket silindi: $t"
           done
+
+      - name: Güncel sürümü yeniden yayınla
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run apk.yml -R "$GITHUB_REPOSITORY" --ref main
+          echo "::notice::Build APK başlatıldı; birkaç dakika içinde yeni sürüm Releases'ta olacak."
