@@ -25,6 +25,7 @@ jobs:
       # 1) Repo secret'ları (IMZA_DOSYASI_B64 + IMZA_SIFRE) varsa onlar kullanılır.
       # 2) Yoksa ilk derlemede bir anahtar üretilir ve Actions önbelleğinde saklanır.
       - name: İmza anahtarını önbellekten al
+        id: imza
         uses: actions/cache@v4
         with:
           path: ~/.imza
@@ -73,6 +74,23 @@ jobs:
           PY
           done
 
+      - name: İmzayı doğrula ve eski sürümlerle karşılaştır
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "::notice::imza önbelleği bulundu mu: ${{ steps.imza.outputs.cache-hit }}"
+          A=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)/apksigner
+          parmak() { "$A" verify --print-certs "$1" | grep -m1 'SHA-256 digest' | awk '{print $NF}'; }
+          "$A" verify GitTranslate.apk
+          YENI=$(parmak GitTranslate.apk)
+          echo "::notice::bu derleme: $YENI"
+          echo "IMZA_SHA=$YENI" >> "$GITHUB_ENV"
+          for t in $(gh release list -R "$GITHUB_REPOSITORY" -L 4 --json tagName -q '.[].tagName'); do
+            if gh release download "$t" -R "$GITHUB_REPOSITORY" -p GitTranslate.apk -O "/tmp/$t.apk" 2>/dev/null; then
+              echo "::notice::$t: $(parmak /tmp/$t.apk)"
+            fi
+          done
+
       - uses: actions/upload-artifact@v4
         with:
           name: GitTranslate
@@ -86,5 +104,7 @@ jobs:
           body: |
             📱 Download `GitTranslate.apk` on your phone and install it. See the README for setup.
             📱 `GitTranslate.apk` dosyasını telefonuna indirip kur. Kurulum için README'ye bak.
+
+            🔏 SHA-256: `${{ env.IMZA_SHA }}`
           files: GitTranslate.apk
           make_latest: true
