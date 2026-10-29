@@ -6,7 +6,7 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="android:windowBackground">@color/zemin_koyu</item>
+        <item name="android:windowBackground">@color/zemin</item>
     </style>
 
     <style name="PanelTheme" parent="android:Theme.Material.NoActionBar">
@@ -19,5 +19,5 @@
         <item name="android:windowAnimationStyle">@android:style/Animation.Translucent</item>
     </style>
 
-    <color name="zemin_koyu">#0D1117</color>
+    <color name="zemin">#0D1117</color>
 </resources>
