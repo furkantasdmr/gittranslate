@@ -1,0 +1,14 @@
+name: 💡 Öneri / Feature request
+description: Yeni bir fikir / A new idea
+labels: [enhancement]
+body:
+  - type: textarea
+    id: fikir
+    attributes:
+      label: Fikrin ne? / What's your idea?
+    validations:
+      required: true
+  - type: textarea
+    id: neden
+    attributes:
+      label: Hangi sorunu çözer? / What problem does it solve?

@@ -10,6 +10,13 @@
 </p>
 
 <p align="center">
+  <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/furkantasdmr/gittranslate?label=release" alt="Release"></a>
+  <a href="../../releases"><img src="https://img.shields.io/github/downloads/furkantasdmr/gittranslate/total" alt="Downloads"></a>
+  <img src="https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white" alt="Android 7.0+">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/furkantasdmr/gittranslate" alt="License"></a>
+</p>
+
+<p align="center">
   <a href="../../releases/latest">⬇️ Download / İndir</a> ·
   <a href="#english">English</a> ·
   <a href="#türkçe">Türkçe</a>
@@ -67,18 +74,28 @@ Tips: **drag** the bubble to move it (it snaps to the nearest edge). **Hold** it
 | `Markdown.kt` | Turns README Markdown/HTML into headings, paragraphs, lists, code, tables and images |
 | `RepoAnaliz.kt` | Rule-based hints: project type, license meaning, folder explanations, section types |
 | `CeviriMotoru.kt` | Translation: Google Translate first, on-device ML Kit as fallback, with a cache |
+| `OnHazirlik.kt` | Background preparation: fetches and translates README, About and release notes before you tap |
+| `CeviriListesi.kt` | The exact list of texts the panel shows, so background translation matches it |
+| `ResimYukleyici.kt` | Loads README screenshots (badges and SVGs are skipped) |
+| `Guncelleyici.kt` | In-app updates through Android's PackageInstaller |
 
-`Markdown.kt`, `RepoAnaliz.kt` and `RepoTespit.kt` don't depend on Android and have unit tests in `app/src/test`.
+`Markdown.kt`, `RepoAnaliz.kt`, `RepoTespit.kt` and `CeviriListesi.kt` don't depend on Android and have unit tests in `app/src/test`.
 
 ### Building
 
-You don't need a computer. Every push to `main` runs the tests, builds the APK on GitHub Actions and publishes a new release.
+You don't need a computer. Every push to `main` runs the tests and builds the APK on GitHub Actions.
 
 **Releases:** a new release is published only when the number in the `VERSION` file changes (e.g. `1.0.0` → `1.0.1`). Other pushes just build and test.
 
 **Signing:** every release is signed with the same key, so updates install over the previous version. On the first build, the workflow creates a key and keeps it in the Actions cache. To keep it forever, add your own key as repository secrets `IMZA_DOSYASI_B64` (the keystore, base64) and `IMZA_SIFRE` (its password, alias `gittranslate`).
 
-Contributions are welcome! Adding a language to section detection only takes a few keywords in `RepoAnaliz.kt`.
+### Contributing
+
+Contributions are welcome! Found a bug or a repository that doesn't open? Please [open an issue](../../issues/new/choose) with a screenshot (hold the bubble to see what it detected). Adding a language to section detection only takes a few keywords in `RepoAnaliz.kt`.
+
+### Credits
+
+Made by **Furkan Taşdemir** ([@furkantasdmr](https://github.com/furkantasdmr)), developed with the help of [Claude](https://claude.ai) (Anthropic).
 
 > GitTranslate is an independent open-source project and is not affiliated with or endorsed by GitHub, Inc.
 
@@ -125,12 +142,18 @@ GitHub uygulamasında bir repoya giriyorsun, README Çince, Japonca, Rusça… y
 
 ### Derleme
 
-Bilgisayar gerekmez. `main` dalına her gönderimde GitHub Actions testleri çalıştırır, APK'yı derler ve yeni bir sürüm yayınlar.
+Bilgisayar gerekmez. `main` dalına her gönderimde GitHub Actions testleri çalıştırır ve APK'yı derler.
 
 **Sürümler:** Yeni sürüm yalnızca `VERSION` dosyasındaki numara değişince yayınlanır (ör. `1.0.0` → `1.0.1`). Diğer gönderimler sadece derlenir ve test edilir.
 
 **İmza:** Bütün sürümler aynı anahtarla imzalanır, böylece güncellemeler eskisinin üstüne kurulur. İlk derlemede iş akışı bir anahtar üretip Actions önbelleğinde saklar. Anahtarın kalıcı olmasını istersen kendi anahtarını repo secret'ı olarak ekle: `IMZA_DOSYASI_B64` (keystore, base64) ve `IMZA_SIFRE` (şifresi; takma ad `gittranslate`).
 
-Katkılara açığız! Bölüm tanımaya yeni bir dil eklemek için `RepoAnaliz.kt` içindeki listelere birkaç anahtar kelime eklemek yeterli.
+### Katkıda bulunmak
+
+Katkılara açığız! Bir hata ya da açılmayan bir repo mu buldun? Ekran görüntüsüyle birlikte [bir issue aç](../../issues/new/choose) (balona basılı tutarsan neyi algıladığını görürsün). Bölüm tanımaya yeni bir dil eklemek için `RepoAnaliz.kt` içindeki listelere birkaç anahtar kelime eklemek yeterli.
+
+### Emeği geçenler
+
+**Furkan Taşdemir** ([@furkantasdmr](https://github.com/furkantasdmr)) tarafından, [Claude](https://claude.ai) (Anthropic) yardımıyla geliştirildi.
 
 > GitTranslate bağımsız bir açık kaynak projesidir; GitHub, Inc. ile bir bağlantısı yoktur ve GitHub tarafından onaylanmamıştır.

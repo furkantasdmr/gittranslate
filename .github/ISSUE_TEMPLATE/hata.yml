@@ -1,0 +1,33 @@
+name: 🐞 Hata bildir / Bug report
+description: Bir şey çalışmıyor / Something doesn't work
+labels: [bug]
+body:
+  - type: textarea
+    id: ne
+    attributes:
+      label: Ne oldu? / What happened?
+      description: Ne bekliyordun, ne oldu? / What did you expect, what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: repo
+    attributes:
+      label: Hangi repo? / Which repository?
+      placeholder: github.com/sahip/repo
+  - type: input
+    id: telefon
+    attributes:
+      label: Telefon ve Android sürümü / Phone and Android version
+      placeholder: Samsung Galaxy S24, Android 15
+    validations:
+      required: true
+  - type: input
+    id: surum
+    attributes:
+      label: GitTranslate sürümü / version
+      placeholder: "1.0.1"
+  - type: textarea
+    id: ekran
+    attributes:
+      label: Ekran görüntüsü / Screenshot
+      description: Balona basılı tutunca çıkan yazının görüntüsü çok yardımcı olur. / A screenshot of the message shown when you hold the bubble helps a lot.
