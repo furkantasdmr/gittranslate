@@ -22,6 +22,15 @@
   <a href="#türkçe">Türkçe</a>
 </p>
 
+<table align="center">
+  <tr>
+    <td align="center"><img src="docs/balon-hazirlaniyor.jpg" width="200" alt="Preparing"><br><sub>1. Translating in the background<br>Arka planda çevriliyor</sub></td>
+    <td align="center"><img src="docs/balon-hazir.jpg" width="200" alt="Ready"><br><sub>2. Ready — tap the bubble<br>Hazır — balona dokun</sub></td>
+    <td align="center"><img src="docs/panel-ceviri.jpg" width="200" alt="Translated README"><br><sub>3. README in your language<br>README senin dilinde</sub></td>
+    <td align="center"><img src="docs/ana-ekran.jpg" width="200" alt="App"><br><sub>4. One-time setup<br>Tek seferlik kurulum</sub></td>
+  </tr>
+</table>
+
 ---
 
 ## English
